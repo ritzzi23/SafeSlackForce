@@ -20,7 +20,7 @@
 .arch-svg { width: 100%; min-width: 720px; height: auto; display: block; }
 .arch-line { stroke: #aab3a4; stroke-width: 1.5; fill: none; }
 .arch-arrow { fill: #aab3a4; }
-.arch-label { font-size: 11px; fill: #7b8375; font-weight: 600; }
+.arch-label { font-size: 11px; fill: #7b8375; font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 5px; stroke-linejoin: round; }
 .arch-box rect { stroke-width: 1.5; }
 .arch-title { font-size: 14px; font-weight: 700; fill: #2f362e; font-family: "Manrope Variable", sans-serif; }
 .arch-sub { font-size: 11px; fill: #59645c; }
@@ -129,3 +129,9 @@
 .print-slide .arch-svg { min-width: 0; max-height: 4.4in; }
 .print-footer { position: absolute; left: 0.75in; bottom: 0.3in; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--muted); }
 @media print { html, body { background: #fff; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* The system design slide gets the most room in the deck and the PDF. */
+.slide .arch-svg { max-height: 58vh; }
+.print-slide .arch-svg { max-height: 4.9in; }
+.print-slide.slide-hero h2 { font-size: 46px; }
+.slide-steps + .slide-agents .slide-agent p { font-size: 12px; }
