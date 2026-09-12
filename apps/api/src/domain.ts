@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type IncidentSnapshot, type SourceRef, type StreamUpdate, type TaskView } from '@incidentos/contracts';
 import type { Config } from './config.js';
 import { Store } from './store.js';
+import { handoffBlockers, closureBlockers } from './readiness.js';
 
 export class DomainError extends Error { constructor(public status: number, message: string) { super(message); } }
 export const requireThat = (condition: unknown, status: number, message: string): asserts condition => { if (!condition) throw new DomainError(status, message); };
@@ -149,12 +150,8 @@ export class Incidents {
   handoff(id: string, actor: string, expected: number) {
     if (!this.config.supervisors.includes(actor)) throw new DomainError(403, 'Supervisor required');
     return this.mutate(id, `Handoff accepted by ${actor}`, i => {
-      if (i.snapshot.status !== 'handoff_ready') throw new DomainError(409, 'Generate a current handoff report first');
-      const report = i.snapshot.reports.at(-1);
-      if (!report) throw new DomainError(409, 'Generate a report first');
-      const saved = this.store.get<{ fingerprint: string }>(report.id);
-      if (!saved || saved.fingerprint !== this.fingerprint(i)) throw new DomainError(409, 'Report is stale; regenerate before handoff');
-      if (i.snapshot.tasks.some(t => !t.owner && !['completed', 'cancelled'].includes(t.status))) throw new DomainError(409, 'Open tasks require owners');
+      const blocker = handoffBlockers(i, this.reportCurrent(i))[0];
+      if (blocker) throw new DomainError(409, blocker.message);
       i.snapshot.status = 'handed_over'; i.acceptedBy = actor;
       return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted handoff` }];
     }, expected);
@@ -163,8 +160,8 @@ export class Incidents {
     if (!this.config.supervisors.includes(actor)) throw new DomainError(403, 'Supervisor required');
     if (!note.trim()) throw new DomainError(400, 'Closure confirmation note is required');
     return this.mutate(id, `Incident closed by ${actor}`, i => {
-      if (i.snapshot.status !== 'handed_over') throw new DomainError(409, 'Accept the handoff first');
-      if (i.snapshot.tasks.some(t => i.criticalTaskIds.includes(t.id) && t.status !== 'completed')) throw new DomainError(409, 'Critical tasks are still open');
+      const blocker = closureBlockers(i)[0];
+      if (blocker) throw new DomainError(409, blocker.message);
       i.snapshot.status = 'closed';
       return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} closure confirmation: ${note}` }];
     }, expected);
@@ -189,6 +186,30 @@ export class Incidents {
   setConnection(state: IncidentSnapshot['slackConnection']) {
     if (this.connection === state) return;
     this.connection = state; for (const i of this.all()) this.commit(i, `Slack ${state}`);
+  }
+  private reportCurrent(i: Incident) {
+    const report = i.snapshot.reports.at(-1);
+    const saved = report ? this.store.get<{ fingerprint: string }>(report.id) : undefined;
+    return Boolean(saved && saved.fingerprint === this.fingerprint(i));
+  }
+  readiness(id: string) {
+    const i = this.get(id);
+    const finished = i.snapshot.status === 'closed';
+    return {
+      incidentId: id, version: i.snapshot.version,
+      handoff: { state: finished || i.snapshot.status === 'handed_over' ? 'done' : 'pending', blockers: finished || i.snapshot.status === 'handed_over' ? [] : handoffBlockers(i, this.reportCurrent(i)), requirement: 'A designated supervisor must accept. Open work may transfer if every open task has an owner.' },
+      closure: { state: finished ? 'done' : 'pending', blockers: finished ? [] : closureBlockers(i), requirement: 'A designated supervisor must confirm closure with a note. Every critical task must be completed.' },
+      tasks: i.snapshot.tasks.map(t => ({
+        taskId: t.id, title: t.title, status: t.status, owner: t.owner?.name ?? null,
+        explanation: t.status === 'completed' ? 'Recorded complete; inspect the attributed confirmation below. This is not independent verification of physical work.'
+          : t.status === 'cancelled' ? 'Cancelled, not completed. A critical cancelled task still blocks closure.'
+          : t.status === 'needs_review' ? t.blockedReason || 'Evidence changed or a person requested review. Reconcile before confirming completion.'
+          : t.status === 'acknowledged' || t.status === 'in_progress' ? 'Ownership accepted; completion has not been confirmed.'
+          : t.blockedReason || 'Completion has not been confirmed. Delivery receipts alone do not establish acknowledgement or completion.',
+        sources: t.sources,
+        notifications: i.notifications.filter(n => n.taskId === t.id).map(n => ({ id: n.id, recipient: n.recipient, state: n.state, acknowledgedBy: n.acknowledgedBy ?? null, receipt: n.messageId ?? null })),
+      })),
+    };
   }
   private fingerprint(i: Incident) {
     return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, attachments: i.attachments, location: i.snapshot.location })).digest('hex');

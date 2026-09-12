@@ -44,6 +44,7 @@ import {
 import { departments, demoAnswer, demoSnapshot, stages } from "./data";
 import { api, ApiError, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
+import ActionReadiness from "./ActionReadiness";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 type Chat = {
@@ -1025,6 +1026,7 @@ export default function App() {
                 <p className="panel-intro">
                   Shared across the team. Human actions are confirmed in Slack.
                 </p>
+                {live && <ActionReadiness incidentId={snapshot.incidentId} version={snapshot.version} />}
                 {!snapshot.tasks.length ? (
                   <div className="empty-state">
                     <ListTodo size={28} />

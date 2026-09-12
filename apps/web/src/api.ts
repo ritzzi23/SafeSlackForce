@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   agentIdSchema,
+  readinessSchema,
   snapshotSchema,
   sourceRefSchema,
   type AgentId,
@@ -29,6 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return r.json();
 }
 export const api = {
+  readiness: async (id: string, signal?: AbortSignal) => readinessSchema.parse(await request(`/api/incidents/${encodeURIComponent(id)}/readiness`, { signal })),
   transcript: (id: string, text: string, expectedVersion: number, requestId: string) =>
     request(`/api/incidents/${encodeURIComponent(id)}/transcripts`, { method: "POST", body: JSON.stringify({ text, expectedVersion, requestId, confirmed: true }) }),
   transcriptStatus: (requestId: string) => request<{ status: string; error?: string }>(`/api/transcripts/${encodeURIComponent(requestId)}`),
