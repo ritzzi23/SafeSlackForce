@@ -1,4 +1,4 @@
-import type { StreamUpdate } from '@incidentos/contracts';
+import type { StreamUpdate } from '@safeslackforce/contracts';
 import { Incidents } from './domain.js';
 import { Agents } from './agents.js';
 

@@ -8,7 +8,7 @@ not a production emergency-response service.
 
 1. Install Node 18.20 or newer and run `npm ci` from the repository root.
 2. Copy `.env.example` to an untracked `.env`. Set `DASHBOARD_TOKEN` to a random
-   value of at least 24 characters. Keep `INCIDENTOS_MODE=fixture` initially.
+   value of at least 24 characters. Keep `SAFESLACKFORCE_MODE=fixture` initially.
 3. Run `npm run dev:api`. The API listens on `http://localhost:4100`.
 4. Run `npm run typecheck` and `npm test` for the checks.
 5. Run `npm run fixtures --silent` for six labelled snapshot states as JSON. Ritesh
@@ -32,7 +32,7 @@ SQLite export in this prototype assumes a single process owns the database.
 
 ## Frontend integration
 
-Import types and Zod schemas from `@incidentos/contracts`. Use `localhost` consistently
+Import types and Zod schemas from `@safeslackforce/contracts`. Use `localhost` consistently
 for both frontend and API so session cookies remain same-site. Set `FRONTEND_ORIGIN`
 to the actual frontend origin. Do not embed the dashboard pairing token in bundled JS.
 
@@ -80,7 +80,7 @@ Use a dedicated workspace/channel and synthetic participants only.
 - Enable Interactivity for the acknowledgement buttons and confirmation modal.
 - Install/reinstall after changing scopes, and invite the bot to the demo channel.
 - Set actual workspace, channel, supervisor, lead and backup Slack IDs in `.env`.
-- Set `OPENROUTER_API_KEY` and a tool-capable `INCIDENTOS_MODEL`; then change mode
+- Set `OPENROUTER_API_KEY` and a tool-capable `SAFESLACKFORCE_MODEL`; then change mode
   to `live`. Startup rejects missing credentials and placeholder Slack IDs.
 
 Socket Mode avoids a public Slack webhook URL. Keep the dashboard local initially.
@@ -168,3 +168,16 @@ See [credit budget](CREDIT-BUDGET.md) before turning on paid providers.
 Implementation references: [Slack message updates](https://docs.slack.dev/reference/methods/chat.update/),
 [Slack file objects](https://docs.slack.dev/reference/objects/file-object/),
 [OpenRouter image inputs](https://openrouter.ai/docs/guides/overview/multimodal/image-understanding).
+
+### Existing installations
+
+Use `SAFESLACKFORCE_MODE` and `SAFESLACKFORCE_MODEL` in new configuration. The
+legacy `INCIDENTOS_MODE` and `INCIDENTOS_MODEL` variables remain accepted when
+the corresponding new variable is absent. Existing `data/incidentos-*.sqlite`
+databases are reused when a new-name database does not exist, preserving incident
+history and the spending ledger. An explicit `DATABASE_PATH` takes precedence.
+
+The Slack manifest names both the app and bot **SafeSlackForce**. For an installed
+app, update its display name and bot display name in Slack app settings, and use
+`#safeslackforce-demo` as the demo channel name. Channel IDs stay unchanged when
+renamed, so the backend configuration continues to work.

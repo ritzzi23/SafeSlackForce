@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SourceRef } from '@incidentos/contracts';
+import type { SourceRef } from '@safeslackforce/contracts';
 import { Store } from './store.js';
 
 export const officeCategory = z.enum(['departments', 'employees', 'contacts', 'facilities', 'insurance_plans', 'healthcare_services', 'management', 'protocols', 'policies', 'call_logs']);

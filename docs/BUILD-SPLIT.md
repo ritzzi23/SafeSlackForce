@@ -139,7 +139,7 @@ Every incident snapshot includes:
 - Available report versions and authorized download URLs.
 
 Full field definitions and endpoint shapes are in
-[`INCIDENTOS-SLACK-BUILD-PLAN.md`](INCIDENTOS-SLACK-BUILD-PLAN.md).
+[`SAFESLACKFORCE-SLACK-BUILD-PLAN.md`](SAFESLACKFORCE-SLACK-BUILD-PLAN.md).
 
 ## Parallel work schedule
 

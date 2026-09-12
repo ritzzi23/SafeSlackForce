@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { ResponseAction, SourceRef } from '@incidentos/contracts';
+import type { ResponseAction, SourceRef } from '@safeslackforce/contracts';
 import { DomainError, Incidents } from './domain.js';
 import type { Channel } from './notifications.js';
 

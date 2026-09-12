@@ -1,7 +1,7 @@
 import express from 'express';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { agentIdSchema, questionSchema, type QuestionResult, type StreamUpdate } from '@incidentos/contracts';
+import { agentIdSchema, questionSchema, type QuestionResult, type StreamUpdate } from '@safeslackforce/contracts';
 import { Agents } from './agents.js';
 import { Budget } from './budget.js';
 import { DomainError, Incidents } from './domain.js';
@@ -23,13 +23,13 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
     if (req.method === 'OPTIONS') { res.sendStatus(204); return; } next();
   });
   const equal = (a: string, b: string) => { const x = Buffer.from(a); const y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
-  const sessionOf = (req: express.Request) => /(?:^|;\s*)incidentos_session=([a-f0-9]+)/.exec(req.headers.cookie ?? '')?.[1];
+  const sessionOf = (req: express.Request) => /(?:^|;\s*)safeslackforce_session=([a-f0-9]+)/.exec(req.headers.cookie ?? '')?.[1];
   app.get('/health', (_req, res) => res.json({ ok: true, mode: domain.config.mode, slack: domain.connection, modelConfigured: Boolean(domain.config.apiKey && domain.config.model) }));
   app.post('/api/session', (req, res) => {
     const token = typeof req.body?.token === 'string' ? req.body.token : '';
     if (!equal(token, domain.config.token)) { res.status(401).json({ error: 'Invalid pairing token' }); return; }
     const session = randomBytes(32).toString('hex'); sessions.set(session, Date.now() + 8 * 3600000);
-    res.cookie('incidentos_session', session, { httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: 8 * 3600000 });
+    res.cookie('safeslackforce_session', session, { httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: 8 * 3600000 });
     res.json({ paired: true, role: 'demo-coordinator', mode: domain.config.mode });
   });
   app.use('/api', (req, res, next) => {
@@ -38,7 +38,7 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
     if ((session && (sessions.get(session) ?? 0) > Date.now()) || (bearer && equal(bearer, domain.config.token))) next();
     else res.status(401).json({ error: 'Pair the dashboard using POST /api/session' });
   });
-  app.post('/api/logout', (req, res) => { const session = sessionOf(req); if (session) sessions.delete(session); res.clearCookie('incidentos_session'); res.json({ ok: true }); });
+  app.post('/api/logout', (req, res) => { const session = sessionOf(req); if (session) sessions.delete(session); res.clearCookie('safeslackforce_session'); res.json({ ok: true }); });
   const wrap = (handler: (req: express.Request<Record<string, string>>, res: express.Response) => unknown | Promise<unknown>): express.RequestHandler<Record<string, string>> => (req, res, next) => { Promise.resolve().then(() => handler(req, res)).catch(next); };
   app.get('/api/incidents', (_req, res) => res.json(domain.all().map(i => ({ incidentId: i.snapshot.incidentId, title: i.snapshot.title, status: i.snapshot.status }))));
   app.get('/api/office', wrap((_req, res) => {

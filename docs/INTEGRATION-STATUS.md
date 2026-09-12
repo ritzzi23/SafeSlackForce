@@ -55,8 +55,9 @@ update relay. Provider usage for this rehearsal remained zero.
 
 Slack bot authentication and public demo-channel membership have been verified.
 Both configured human members are also in the demo channel. The installed Slack
-app still has its existing **IncidentOS Demo** name in **#incidentos-demo**; product
-branding changes do not rename external Slack resources or require reinstalling.
+app and bot display names are configured as **SafeSlackForce** in the manifest.
+Existing installations must also update their Slack display names; editing the
+repository manifest does not rename an installed app or its channel.
 App-token connection-URL creation was verified earlier; that is not a completed
 Socket Mode end-to-end rehearsal. Live startup still requires an OpenRouter API
 key and a tool-capable model. Do not call this production ready or a verified live
@@ -82,8 +83,8 @@ remain human actions in Slack, not buttons that agents can approve themselves.
 4. Choose **Create offline rehearsal**, or load an existing fixture incident.
 5. Select Records and ask for a handoff; inspect tasks, activity, source messages
    and the report download. This is a persisted fixture run, not model inference.
-6. Before live testing, add `OPENROUTER_API_KEY` and `INCIDENTOS_MODEL` privately,
-   inspect spending settings, set `INCIDENTOS_MODE=live`, and restart.
+6. Before live testing, add `OPENROUTER_API_KEY` and `SAFESLACKFORCE_MODEL` privately,
+   inspect spending settings, set `SAFESLACKFORCE_MODE=live`, and restart.
 7. Leave `DATABASE_PATH` empty so live mode uses its own database. Old databases
    are preserved; never copy synthetic incidents into a live store.
 8. Run `npm run doctor -- --live`; then use the Slack rehearsal in

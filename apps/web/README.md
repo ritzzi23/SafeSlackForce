@@ -63,7 +63,7 @@ The layout prioritizes chat/tasks on phones, with a **View office** toggle. Agen
 - `src/SlackThread.tsx`: labeled synthetic Slack thread or validated backend source messages.
 - `src/App.tsx`: workspace shell, Commander/specialist conversations, tasks, activity, pairing, demo playback.
 - `src/api.ts`: session pairing, snapshot validation, SSE and question API adapter.
-- `src/data.ts`: explicit synthetic demo states, using `@incidentos/contracts`.
+- `src/data.ts`: explicit synthetic demo states, using `@safeslackforce/contracts`.
 - `src/styles.css`: responsive visual styling.
 
 ## Design and assets

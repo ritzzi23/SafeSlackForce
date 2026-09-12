@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readinessSchema } from '@incidentos/contracts';
+import { readinessSchema } from '@safeslackforce/contracts';
 import { Store } from '../src/store.js';
 import { Incidents } from '../src/domain.js';
 import { readConfig } from '../src/config.js';
@@ -12,7 +12,7 @@ import { Research } from '../src/research.js';
 
 async function setup() {
   const store = await Store.open(':memory:');
-  const domain = new Incidents(store, readConfig({ INCIDENTOS_MODE: 'fixture', DASHBOARD_TOKEN: 'test-only-readiness-token-123456789' }));
+  const domain = new Incidents(store, readConfig({ SAFESLACKFORCE_MODE: 'fixture', DASHBOARD_TOKEN: 'test-only-readiness-token-123456789' }));
   const id = domain.create({ team: 'T', channel: 'C', ts: '1', user: 'U', text: 'Forklift incident at Dock B' }).snapshot.incidentId;
   domain.applyProcedure(id);
   return { store, domain, id };

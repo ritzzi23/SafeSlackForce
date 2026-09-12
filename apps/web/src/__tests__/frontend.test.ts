@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { snapshotSchema, agentIds } from "@incidentos/contracts";
+import { snapshotSchema, agentIds } from "@safeslackforce/contracts";
 import { demoSnapshot, demoAnswer } from "../data";
 import { api, ApiError, linkedIncidentId, safeUrl } from "../api";
 afterEach(() => vi.unstubAllGlobals());

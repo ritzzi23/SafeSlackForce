@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { IncidentReadiness } from '@incidentos/contracts';
+import type { IncidentReadiness } from '@safeslackforce/contracts';
 import { api } from './api';
 
 export function ReadinessContent({ data }: { data: IncidentReadiness }) {

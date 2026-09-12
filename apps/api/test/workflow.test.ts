@@ -12,7 +12,7 @@ import { Research } from '../src/research.js';
 import { createHttp } from '../src/http.js';
 import type { Model, ModelMessage, Completion } from '../src/model.js';
 
-const cfg = () => readConfig({ DASHBOARD_TOKEN: 'test-only-workflow-token-12345678', INCIDENTOS_MODE: 'fixture', MODEL_MAX_ROUNDS: '10' });
+const cfg = () => readConfig({ DASHBOARD_TOKEN: 'test-only-workflow-token-12345678', SAFESLACKFORCE_MODE: 'fixture', MODEL_MAX_ROUNDS: '10' });
 async function setup(model?: Model) {
   const store = await Store.open(':memory:'); const domain = new Incidents(store, cfg());
   const channel = new FixtureChannel(); const notifications = new Notifications(domain, channel);

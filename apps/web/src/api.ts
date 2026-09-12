@@ -8,7 +8,7 @@ import {
   type IncidentSnapshot,
   type QuestionResult,
   type StreamUpdate,
-} from "@incidentos/contracts";
+} from "@safeslackforce/contracts";
 export class ApiError extends Error {
   constructor(
     public status: number,

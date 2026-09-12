@@ -6,7 +6,7 @@ import {
   MessageSquare,
   Radio,
 } from "lucide-react";
-import type { IncidentSnapshot, SourceRef } from "@incidentos/contracts";
+import type { IncidentSnapshot, SourceRef } from "@safeslackforce/contracts";
 import { api, safeUrl } from "./api";
 import VoiceUpdate from "./VoiceUpdate";
 import { PROJECT_NAME, DEMO_CHANNEL } from "./branding";

@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     resolve: {
       alias: {
-        "@incidentos/contracts": fileURLToPath(
+        "@safeslackforce/contracts": fileURLToPath(
           new URL("../../packages/contracts/src/index.ts", import.meta.url),
         ),
       },

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { agentIdSchema, type AgentId, type SourceRef } from '@incidentos/contracts';
+import { agentIdSchema, type AgentId, type SourceRef } from '@safeslackforce/contracts';
 import { DomainError, Incidents, procedure } from './domain.js';
 import { Notifications } from './notifications.js';
 import { type Model, type ModelMessage, type ToolSpec } from './model.js';

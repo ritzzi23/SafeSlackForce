@@ -1,5 +1,5 @@
 import { BellRing, CalendarClock, PhoneCall, Zap } from 'lucide-react';
-import type { IncidentSnapshot } from '@incidentos/contracts';
+import type { IncidentSnapshot } from '@safeslackforce/contracts';
 export default function ResponseBoard({ snapshot }: { snapshot: IncidentSnapshot }) {
   const actions = snapshot.responseActions ?? [];
   if (!actions.length) return null;

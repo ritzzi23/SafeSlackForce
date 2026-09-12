@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { IncidentReadiness } from '@incidentos/contracts';
+import type { IncidentReadiness } from '@safeslackforce/contracts';
 import { ReadinessContent } from '../ActionReadiness';
 
 const data: IncidentReadiness = {

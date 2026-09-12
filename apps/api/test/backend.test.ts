@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { snapshotSchema } from '@incidentos/contracts';
+import { snapshotSchema } from '@safeslackforce/contracts';
 import { readConfig } from '../src/config.js';
 import { Store } from '../src/store.js';
 import { Incidents } from '../src/domain.js';
@@ -14,7 +14,7 @@ import { Research } from '../src/research.js';
 import { createHttp } from '../src/http.js';
 import type { Model } from '../src/model.js';
 
-const config = () => readConfig({ DASHBOARD_TOKEN: 'test-only-pairing-token-123456789', INCIDENTOS_MODE: 'fixture', FOLLOWUP_SECONDS: '1' });
+const config = () => readConfig({ DASHBOARD_TOKEN: 'test-only-pairing-token-123456789', SAFESLACKFORCE_MODE: 'fixture', FOLLOWUP_SECONDS: '1' });
 async function setup(model?: Model) {
   const store = await Store.open(':memory:'); const domain = new Incidents(store, config());
   const channel = new FixtureChannel(); const notifications = new Notifications(domain, channel);
@@ -84,7 +84,7 @@ test('handoff requires current report; closure remains blocked by critical open 
   s.store.close();
 });
 test('SQLite restores records, ordered event snapshots and budget after restart', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'incidentos-test-')); const path = join(dir, 'test.sqlite');
+  const dir = mkdtempSync(join(tmpdir(), 'safeslackforce-test-')); const path = join(dir, 'test.sqlite');
   const store = await Store.open(path); const d = new Incidents(store, config());
   const i = d.create({ team: 'T', channel: 'C', ts: '9.1', user: 'U', text: 'Report' });
   const b = new Budget(store); const reservation = b.reserve('openrouter', 1, 0.05, 1); b.finish(reservation, 'done', 0.01); store.close();
@@ -109,7 +109,7 @@ test('fixture and live stores are separated and cannot dispatch each other’s i
   const s = await setup();
   assert.equal(s.domain.get(s.id).snapshot.slackThreadUrl, '');
   assert.throws(() => new Incidents(s.store, { ...config(), mode: 'live' }), /another mode/);
-  assert.notEqual(config().database, readConfig({ DASHBOARD_TOKEN: config().token, INCIDENTOS_MODE: 'live' }).database);
+  assert.notEqual(config().database, readConfig({ DASHBOARD_TOKEN: config().token, SAFESLACKFORCE_MODE: 'live' }).database);
   s.store.close();
 });
 test('HTTP pairing, persisted fixture workflow, stale requests and private report access', async () => {

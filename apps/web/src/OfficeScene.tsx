@@ -12,7 +12,7 @@ import type {
   AgentId,
   IncidentSnapshot,
   StreamUpdate,
-} from "@incidentos/contracts";
+} from "@safeslackforce/contracts";
 import { departments } from "./data";
 import Room from "./Room";
 const positions: Record<AgentId, [number, number, number]> = {

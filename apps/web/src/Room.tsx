@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { PROJECT_NAME } from "./branding";
-import type { IncidentSnapshot } from "@incidentos/contracts";
+import type { IncidentSnapshot } from "@safeslackforce/contracts";
 type V3 = [number, number, number];
 function Solid({
   p,

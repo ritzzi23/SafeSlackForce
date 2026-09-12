@@ -3,7 +3,7 @@ import {
   type AgentId,
   type IncidentSnapshot,
   type AgentStatus,
-} from "@incidentos/contracts";
+} from "@safeslackforce/contracts";
 export const departments: Record<
   AgentId,
   { name: string; role: string; color: string; pale: string; code: string }

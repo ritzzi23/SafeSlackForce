@@ -15,7 +15,7 @@ does not establish the account's remaining balance. Never commit API keys or red
 
 The Commander delegates only needed work. Specialists share a configured model but have
 different tool permissions. There is no automatic multi-provider fallback or expensive
-model escalation. Select a tool-calling model in `INCIDENTOS_MODEL` after checking its
+model escalation. Select a tool-calling model in `SAFESLACKFORCE_MODEL` after checking its
 current provider price; the repository deliberately does not guess a model or price.
 
 ## Proposed allocation, not money already spent

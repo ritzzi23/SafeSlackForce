@@ -1,7 +1,11 @@
 import 'dotenv/config';
 import { z } from 'zod';
+import { existsSync } from 'node:fs';
 export function readConfig(env = process.env) {
-  const mode = z.enum(['live', 'fixture']).parse(env.INCIDENTOS_MODE ?? 'fixture');
+  const mode = z.enum(['live', 'fixture']).parse(env.SAFESLACKFORCE_MODE ?? env.INCIDENTOS_MODE ?? 'fixture');
+  // Keep existing deployments on their persisted incident and spending ledger.
+  const database = `data/safeslackforce-${mode}.sqlite`;
+  const legacyDatabase = `data/incidentos-${mode}.sqlite`;
   const token = env.DASHBOARD_TOKEN ?? '';
   if (token.length < 24) throw new Error('Set DASHBOARD_TOKEN to at least 24 random characters in .env.');
   return {
@@ -10,9 +14,9 @@ export function readConfig(env = process.env) {
     autonomousResponse: env.AUTONOMOUS_RESPONSE_ENABLED === 'true',
     autoReportLimit: z.coerce.number().int().min(1).max(100).parse(env.AUTO_REPORT_LIMIT ?? 20),
     emergencyCallMode: z.enum(['disabled', 'simulation']).parse(env.EMERGENCY_CALL_MODE ?? 'disabled'),
-    database: env.DATABASE_PATH || `data/incidentos-${mode}.sqlite`, origin: env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
+    database: env.DATABASE_PATH || (existsSync(database) || !existsSync(legacyDatabase) ? database : legacyDatabase), origin: env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
     dashboardUrl: z.string().url().refine(s => ['http:', 'https:'].includes(new URL(s).protocol)).parse(env.DASHBOARD_URL || env.FRONTEND_ORIGIN || 'http://localhost:5173'),
-    apiKey: env.OPENROUTER_API_KEY ?? '', model: env.INCIDENTOS_MODEL ?? '',
+    apiKey: env.OPENROUTER_API_KEY ?? '', model: env.SAFESLACKFORCE_MODEL ?? env.INCIDENTOS_MODEL ?? '',
     appToken: env.SLACK_APP_TOKEN ?? '', botToken: env.SLACK_BOT_TOKEN ?? '',
     team: env.SLACK_TEAM_ID?.trim() || 'TDEMO', channel: env.SLACK_DEMO_CHANNEL_ID?.trim() || 'CDEMO',
     supervisors: (env.SLACK_SUPERVISOR_USER_IDS || 'USUPERVISOR').split(',').map(s => s.trim()).filter(Boolean),

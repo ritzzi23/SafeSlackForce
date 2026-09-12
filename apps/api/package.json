@@ -1,9 +1,9 @@
 {
-  "name": "@incidentos/api",
+  "name": "@safeslackforce/api",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@incidentos/contracts": "*",
+    "@safeslackforce/contracts": "*",
     "@slack/bolt": "^4.0.0",
     "@slack/types": "^2.22.0",
     "dotenv": "^16.4.7",

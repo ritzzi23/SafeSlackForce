@@ -2,9 +2,9 @@ import 'dotenv/config';
 import { readConfig } from '../src/config.js';
 const required = ['DASHBOARD_TOKEN', 'SLACK_APP_TOKEN', 'SLACK_BOT_TOKEN', 'SLACK_TEAM_ID',
   'SLACK_DEMO_CHANNEL_ID', 'SLACK_SUPERVISOR_USER_IDS', 'SLACK_LEAD_USER_ID',
-  'SLACK_BACKUP_USER_ID', 'OPENROUTER_API_KEY', 'INCIDENTOS_MODEL'];
-const missing = required.filter(key => !process.env[key]?.trim());
-console.log('IncidentOS readiness check (no secret values printed)');
+  'SLACK_BACKUP_USER_ID', 'OPENROUTER_API_KEY', 'SAFESLACKFORCE_MODEL'];
+const missing = required.filter(key => !(process.env[key] ?? (key === 'SAFESLACKFORCE_MODEL' ? process.env.INCIDENTOS_MODEL : ''))?.trim());
+console.log('SafeSlackForce readiness check (no secret values printed)');
 console.log(missing.length ? `Missing live configuration: ${missing.join(', ')}` : 'All required live variables are present');
 if (missing.length) process.exitCode = 1;
 else {

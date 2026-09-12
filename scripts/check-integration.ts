@@ -2,7 +2,7 @@ import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { api, ApiError } from '../apps/web/src/api.js';
-import { snapshotSchema } from '@incidentos/contracts';
+import { snapshotSchema } from '@safeslackforce/contracts';
 
 // Real frontend API adapter through Vite's proxy. Creates one fixture rehearsal;
 // no Slack, OpenRouter or Exa calls. Requires both development servers running.

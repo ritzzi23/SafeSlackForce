@@ -34,7 +34,7 @@ call and dollar limits still apply. The older ownership/handoff controls remain
 available for recording real-world responsibility and final closure.
 
 The current product, architecture, Slack workflow, frontend direction, and Om/Ritesh work split
-are documented in [the implementation plan](docs/INCIDENTOS-SLACK-BUILD-PLAN.md).
+are documented in [the implementation plan](docs/SAFESLACKFORCE-SLACK-BUILD-PLAN.md).
 
 For the direct ownership checklist and integration checkpoints, use the
 [separate build split](docs/BUILD-SPLIT.md).
@@ -74,8 +74,8 @@ npm run doctor            # reports missing live configuration without secrets
 ```
 
 Before live use, configure the Slack tokens, workspace/channel/role IDs,
-`OPENROUTER_API_KEY` and a tool-capable `INCIDENTOS_MODEL`, then set
-`INCIDENTOS_MODE=live` and restart. Leave `DATABASE_PATH` blank to select separate
+`OPENROUTER_API_KEY` and a tool-capable `SAFESLACKFORCE_MODEL`, then set
+`SAFESLACKFORCE_MODE=live` and restart. Leave `DATABASE_PATH` blank to select separate
 fixture/live databases. Mixed-mode databases are rejected before any dispatch.
 Set `FRONTEND_ORIGIN` and `DASHBOARD_URL` to the exact URL you open.
 

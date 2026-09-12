@@ -7,7 +7,7 @@ import { OpenRouter } from '../src/model.js';
 import { Research } from '../src/research.js';
 
 const config = () => readConfig({ DASHBOARD_TOKEN: 'test-only-provider-token-123456789',
-  OPENROUTER_API_KEY: 'test-key-not-real', INCIDENTOS_MODEL: 'test-model-not-real',
+  OPENROUTER_API_KEY: 'test-key-not-real', SAFESLACKFORCE_MODEL: 'test-model-not-real',
   MODEL_BUDGET_USD: '0.10', MODEL_CALL_RESERVE_USD: '0.05',
   EXA_API_KEY: 'test-key-not-real', EXA_ENABLED: 'true', EXA_CALL_LIMIT: '1' });
 

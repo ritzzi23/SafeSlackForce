@@ -40,7 +40,7 @@ import {
   type AgentId,
   type IncidentSnapshot,
   type StreamUpdate,
-} from "@incidentos/contracts";
+} from "@safeslackforce/contracts";
 import { departments, demoAnswer, demoSnapshot, stages } from "./data";
 import { api, ApiError, linkedIncidentId, safeUrl } from "./api";
 import SlackThread from "./SlackThread";

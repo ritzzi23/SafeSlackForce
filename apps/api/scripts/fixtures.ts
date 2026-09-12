@@ -1,4 +1,4 @@
-import { snapshotSchema } from '@incidentos/contracts';
+import { snapshotSchema } from '@safeslackforce/contracts';
 import { readConfig } from '../src/config.js';
 import { Store } from '../src/store.js';
 import { Incidents } from '../src/domain.js';
@@ -6,7 +6,7 @@ import { Agents } from '../src/agents.js';
 import { FixtureChannel, Notifications } from '../src/notifications.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 const store = await Store.open(':memory:');
-const config = readConfig({ DASHBOARD_TOKEN: 'fixture-generator-not-a-real-secret', INCIDENTOS_MODE: 'fixture' });
+const config = readConfig({ DASHBOARD_TOKEN: 'fixture-generator-not-a-real-secret', SAFESLACKFORCE_MODE: 'fixture' });
 const domain = new Incidents(store, config);
 const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()));
 const i = domain.create({ team: 'TDEMO', channel: 'CDEMO', ts: '1.000001', user: 'UREPORTER', text: 'Forklift incident at Loading Dock B' });

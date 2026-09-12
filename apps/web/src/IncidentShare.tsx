@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { Copy, ExternalLink, Download } from 'lucide-react';
-import type { IncidentSnapshot } from '@incidentos/contracts';
+import type { IncidentSnapshot } from '@safeslackforce/contracts';
 import { safeUrl } from './api';
 
 export default function IncidentShare({ snapshot }: { snapshot: IncidentSnapshot }) {

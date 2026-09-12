@@ -1,6 +1,6 @@
 import type { KnownBlock } from '@slack/types';
 import { DomainError, Incidents } from './domain.js';
-import type { StreamUpdate } from '@incidentos/contracts';
+import type { StreamUpdate } from '@safeslackforce/contracts';
 
 const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 type SummaryRecord = { state: 'sending' | 'sent' | 'uncertain'; ts?: string; error?: string };

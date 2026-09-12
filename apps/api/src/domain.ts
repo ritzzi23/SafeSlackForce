@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type IncidentSnapshot, type SourceRef, type StreamUpdate, type TaskView } from '@incidentos/contracts';
+import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type IncidentSnapshot, type SourceRef, type StreamUpdate, type TaskView } from '@safeslackforce/contracts';
 import type { Config } from './config.js';
 import { Store } from './store.js';
 import { handoffBlockers, closureBlockers } from './readiness.js';
