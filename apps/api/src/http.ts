@@ -16,7 +16,7 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff');
     const origin = req.headers.origin;
-    if (origin && origin !== domain.config.origin) { res.status(403).json({ error: 'Origin not allowed' }); return; }
+    if (origin && !domain.config.origins.includes(origin)) { res.status(403).json({ error: 'Origin not allowed' }); return; }
     if (origin) { res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Access-Control-Allow-Credentials', 'true'); res.setHeader('Vary', 'Origin'); }
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

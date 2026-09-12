@@ -3,12 +3,14 @@ import { z } from 'zod';
 export function readConfig(env = process.env) {
   const mode = z.enum(['live', 'fixture']).parse(env.INCIDENTOS_MODE ?? 'fixture');
   const token = env.DASHBOARD_TOKEN ?? '';
+  // Comma-separated so the local Vite dashboard and a hosted (e.g. Vercel) dashboard can both pair.
+  const origins = (env.FRONTEND_ORIGIN || 'http://localhost:5173').split(',').map(s => s.trim()).filter(Boolean);
   if (token.length < 24) throw new Error('Set DASHBOARD_TOKEN to at least 24 random characters in .env.');
   return {
     mode, token, host: env.HOST || '127.0.0.1', port: z.coerce.number().int().min(1).max(65535).parse(env.PORT || 4100),
     officeDemoEnabled: env.OFFICE_DEMO_ENABLED === 'true',
-    database: env.DATABASE_PATH || `data/incidentos-${mode}.sqlite`, origin: env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
-    dashboardUrl: z.string().url().refine(s => ['http:', 'https:'].includes(new URL(s).protocol)).parse(env.DASHBOARD_URL || env.FRONTEND_ORIGIN || 'http://localhost:5173'),
+    database: env.DATABASE_PATH || `data/incidentos-${mode}.sqlite`, origin: origins[0], origins,
+    dashboardUrl: z.string().url().refine(s => ['http:', 'https:'].includes(new URL(s).protocol)).parse(env.DASHBOARD_URL || origins[0]),
     apiKey: env.OPENROUTER_API_KEY ?? '', model: env.INCIDENTOS_MODEL ?? '',
     appToken: env.SLACK_APP_TOKEN ?? '', botToken: env.SLACK_BOT_TOKEN ?? '',
     team: env.SLACK_TEAM_ID?.trim() || 'TDEMO', channel: env.SLACK_DEMO_CHANNEL_ID?.trim() || 'CDEMO',

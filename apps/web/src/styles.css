@@ -2229,6 +2229,9 @@ h1 {
 .voice-update p, .voice-update label { font-size: 12px; line-height: 1.5; color: #59645c; }
 .voice-update textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid #cbd4c8; border-radius: 10px; padding: 10px; font: inherit; font-size: 13px; box-sizing: border-box; }
 .voice-update label { display: flex; gap: 8px; align-items: flex-start; }
+.emergency-call { border-top-color: #e7b4ad; }
+.emergency-call-alert { background: #fdecea; color: #8a1c12 !important; border: 1px solid #e7b4ad; border-radius: 10px; padding: 8px 10px; font-weight: 600; }
+.emergency-call-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* The full project name remains legible on compact screens. */
 .brand-name {

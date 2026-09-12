@@ -9,6 +9,7 @@ import {
 import type { IncidentSnapshot, SourceRef } from "@incidentos/contracts";
 import { api, safeUrl } from "./api";
 import VoiceUpdate from "./VoiceUpdate";
+import EmergencyCall from "./EmergencyCall";
 import { PROJECT_NAME, DEMO_CHANNEL } from "./branding";
 type Message = {
   id: string;
@@ -227,6 +228,7 @@ export default function SlackThread({
         </div>)}
         <p>Images and model observations do not confirm safety or completed actions.</p>
       </section>}
+      {connected && <EmergencyCall key={`call-${snapshot.incidentId}`} snapshot={snapshot} />}
       {connected && <VoiceUpdate key={snapshot.incidentId} snapshot={snapshot} />}
       {snapshot.slackThreadUrl ? (
         <a
