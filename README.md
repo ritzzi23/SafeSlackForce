@@ -19,17 +19,18 @@ a physical action actually happened.
 2. [Why Slack matters](#why-slack-matters)
 3. [The agents](#the-agents)
 4. [Emergency call agent](#emergency-call-agent)
-5. [Architecture](#architecture)
-6. [Safety and reliability](#safety-and-reliability)
-7. [Run it locally](#run-it-locally)
-8. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
-9. [Configuration](#configuration)
-10. [Hosting](#hosting)
-11. [API reference](#api-reference)
-12. [Project structure](#project-structure)
-13. [Testing](#testing)
-14. [Built with](#built-with)
-15. [Hackathon note](#hackathon-note)
+5. [Incident copilot (CopilotKit)](#incident-copilot-copilotkit)
+6. [Architecture](#architecture)
+7. [Safety and reliability](#safety-and-reliability)
+8. [Run it locally](#run-it-locally)
+9. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
+10. [Configuration](#configuration)
+11. [Hosting](#hosting)
+12. [API reference](#api-reference)
+13. [Project structure](#project-structure)
+14. [Testing](#testing)
+15. [Built with](#built-with)
+16. [Hackathon note](#hackathon-note)
 
 ---
 
@@ -93,6 +94,27 @@ A hands-free voice line for the person on site, built into the dashboard.
 The agent logs and routes the report. It does not dispatch emergency services, and the call record
 says so.
 
+## Incident copilot (CopilotKit)
+
+A chat copilot in the corner of the dashboard, built with **CopilotKit**. It appears once the
+dashboard is paired with a live or fixture backend.
+
+- **It sees the incident.** `useCopilotReadable` gives it the current status, the five agents, every
+  human-owned task, recent activity and report versions, refreshed on each live update.
+- **It can act on the dashboard.** `focusAgentDesk` moves the 3D camera and inspector to an agent,
+  and `openDashboardTab` opens tasks, activity, the Slack thread, notifications or the office directory.
+- **It asks for approval first.** `askIncidentAgent` hands a question to one of the five agents.
+  Because that question and its answer are posted in the incident Slack thread, the copilot shows an
+  **Approve and send / Cancel** card (`renderAndWaitForResponse`) and sends nothing until the
+  coordinator approves.
+- **It runs on your stack.** The CopilotKit runtime is mounted in the Express API at
+  `/api/copilotkit`, behind the same paired-session check and origin allowlist as every other route.
+  It uses the same OpenRouter key and model as the agents, has its own request cap
+  (`COPILOT_CALL_LIMIT`), and CopilotKit telemetry is switched off.
+
+Try: *"What is blocked right now?"*, *"Show me the Evidence desk"*, or
+*"Ask Records to prepare the handoff report."*
+
 ## Architecture
 
 ```mermaid
@@ -112,16 +134,19 @@ flowchart LR
     D --> ST[(SQLite<br/>entities + event log)]
     D --> E[Event bus]
     H[Express HTTP<br/>paired session] --> D
+    CK[CopilotKit runtime<br/>/api/copilotkit] --> M
   end
   subgraph Browser["Dashboard (React + Vite)"]
     O[3D command center]
     C[Emergency call agent]
+    P[CopilotKit copilot]
   end
   T --> S
   B --> S
   E -->|Server-Sent Events| O
   C -->|reviewed transcript| H
   O -->|questions, reports| H
+  P -->|chat, approved actions| CK
 ```
 
 **Key design choices**
@@ -214,6 +239,7 @@ All settings live in `.env` (gitignored). See [`.env.example`](.env.example).
 | `MODEL_CALL_LIMIT`, `MODEL_MAX_ROUNDS`, `MODEL_BUDGET_USD`, `MODEL_CALL_RESERVE_USD` | Model spending and loop limits |
 | `EXA_API_KEY`, `EXA_ENABLED`, `EXA_CALL_LIMIT` | Web research |
 | `SLACK_FILES_ENABLED`, `VISION_ENABLED`, `VISION_MODEL` | Photo ingestion and description |
+| `COPILOT_CALL_LIMIT` | Dashboard copilot requests per server run (default 40) |
 | `OFFICE_DEMO_ENABLED` | Synthetic office directory (run `npm run seed:office` first) |
 | `DATABASE_PATH` | Leave blank for separate fixture and live databases |
 
@@ -244,6 +270,7 @@ All `/api` routes require a paired session cookie or `Authorization: Bearer <DAS
 | `GET` | `/api/incidents/:id/reports/:reportId` | Download the handoff report (Markdown) |
 | `GET` | `/api/usage` | Provider calls and spend against limits |
 | `POST` | `/api/research` | Budget-guarded Exa research |
+| `POST` | `/api/copilotkit` | CopilotKit runtime for the dashboard copilot |
 
 Fixture mode adds `/api/demo/*` routes for offline rehearsals. Full contract:
 [docs/BACKEND-SETUP.md](docs/BACKEND-SETUP.md).
@@ -264,6 +291,7 @@ apps/
       notifications.ts Delivery queue, follow-up escalation, retries
       autopilot.ts     Automatic report follow-through
       research.ts      Exa research
+      copilot.ts       CopilotKit runtime (OpenRouter via OpenAI adapter)
       media.ts         Slack photo ingestion and vision
       office.ts        Synthetic office directory
       store.ts         SQLite (sql.js) entities and event log
@@ -275,6 +303,7 @@ apps/
       OfficeScene.tsx  3D office (react-three-fiber)
       SlackThread.tsx  Thread, evidence, voice and emergency call panels
       EmergencyCall.tsx Emergency call agent
+      IncidentCopilot.tsx CopilotKit copilot: readable state, actions, approval card
       IncidentJourney.tsx, ActionReadiness.tsx, OfficeDirectory.tsx
 packages/contracts/    Shared zod schemas
 fixtures/              Slack app manifest, synthetic snapshots and office data
@@ -298,6 +327,7 @@ call agent.
 ## Built with
 
 - **OpenRouter** for agent models with tool calling
+- **CopilotKit** for the in-dashboard incident copilot with human approval
 - **Exa** for web research
 - **Slack Bolt** (Socket Mode)
 - **Node.js**, **TypeScript**, **Express**, **zod**, **sql.js**

@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { z } from 'zod';
+// CopilotKit's runtime sends usage telemetry unless this is set; keep incident traffic local.
+process.env.COPILOTKIT_TELEMETRY_DISABLED ??= 'true';
 export function readConfig(env = process.env) {
   const mode = z.enum(['live', 'fixture']).parse(env.INCIDENTOS_MODE ?? 'fixture');
   const token = env.DASHBOARD_TOKEN ?? '';
@@ -25,6 +27,7 @@ export function readConfig(env = process.env) {
     exaCallLimit: z.coerce.number().int().positive().parse(env.EXA_CALL_LIMIT ?? 5),
     filesEnabled: env.SLACK_FILES_ENABLED === 'true', visionEnabled: env.VISION_ENABLED === 'true',
     visionModel: env.VISION_MODEL || '',
+    copilotCallLimit: z.coerce.number().int().positive().parse(env.COPILOT_CALL_LIMIT ?? 40),
   };
 }
 export type Config = ReturnType<typeof readConfig>;

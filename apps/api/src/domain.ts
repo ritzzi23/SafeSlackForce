@@ -54,7 +54,7 @@ export class Incidents {
     const incident: Incident = {
       team: input.team, channel: input.channel, rootTs: input.ts, messages: [message], facts: [], notifications: [], criticalTaskIds: [],
       snapshot: { schemaVersion: 1, incidentId: id, version: 0, cursor: 0, mode: this.config.mode,
-        title: input.text.slice(0, 100), location: 'Not yet confirmed', status: 'reported', slackThreadUrl: url,
+        title: slackTitle(input.text), location: 'Not yet confirmed', status: 'reported', slackThreadUrl: url,
         slackConnection: this.connection, agents: agentIds.map(agent => ({ id: agent, name: agent[0].toUpperCase() + agent.slice(1), status: 'idle', currentTaskId: null, summary: 'No work assigned', waitingOn: null, sources: [] })),
         tasks: [], activity: [], reports: [],
       },
@@ -138,6 +138,7 @@ export class Incidents {
       if (task.version !== version) throw new DomainError(409, 'Task changed; use the latest action');
       if (action === 'complete' && !note.trim()) throw new DomainError(400, 'An explicit confirmation note is required');
       if (action === 'acknowledge' && ['completed', 'needs_review', 'cancelled'].includes(task.status)) throw new DomainError(409, 'Task cannot be acknowledged in its current state');
+      if (action === 'acknowledge' && task.status === 'acknowledged' && task.owner?.slackUserId === actor) throw new DomainError(409, 'You already acknowledged this task');
       task.version++; task.status = action === 'acknowledge' ? 'acknowledged' : action === 'review' ? 'needs_review' : 'completed';
       task.blockedReason = action === 'review' ? note || 'Human review requested' : null;
       if (action === 'acknowledge') task.owner = { slackUserId: actor, name: actor };
@@ -235,4 +236,11 @@ export class Incidents {
   private fingerprint(i: Incident) {
     return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, attachments: i.attachments, location: i.snapshot.location })).digest('hex');
   }
+}
+
+/** Readable incident title from raw Slack text: drops mentions and quote markers, decodes entities. */
+export function slackTitle(text: string) {
+  const plain = text.replace(/<[@#!][^>]*>/g, ' ').replace(/<(https?:[^|>]+)\|([^>]+)>/g, '$2')
+    .replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&').replace(/^[\s>]+/, '').replace(/\s+/g, ' ').trim();
+  return (plain || 'Incident report').slice(0, 100);
 }

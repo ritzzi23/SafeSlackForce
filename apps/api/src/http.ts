@@ -9,10 +9,14 @@ import { Research, researchTopic } from './research.js';
 import { FixtureChannel } from './notifications.js';
 import type { Media } from './media.js';
 import { officeCategory } from './office.js';
+import { COPILOT_ENDPOINT, copilotHandler } from './copilot.js';
 type SavedRequest = QuestionResult & { incidentId: string; agentId: string; text: string };
 export function createHttp(domain: Incidents, agents: Agents, budget: Budget, research: Research, media?: Media) {
   const app = express(); const sessions = new Map<string, number>();
-  app.disable('x-powered-by'); app.use(express.json({ limit: '64kb' }));
+  app.disable('x-powered-by');
+  // CopilotKit reads its own request stream, so the JSON parser must not consume it first.
+  const json = express.json({ limit: '64kb' });
+  app.use((req, res, next) => req.path.startsWith(COPILOT_ENDPOINT) ? next() : json(req, res, next));
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff');
     const origin = req.headers.origin;
@@ -37,6 +41,12 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
     const bearer = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : '';
     if ((session && (sessions.get(session) ?? 0) > Date.now()) || (bearer && equal(bearer, domain.config.token))) next();
     else res.status(401).json({ error: 'Pair the dashboard using POST /api/session' });
+  });
+  const copilot = copilotHandler(domain.config);
+  app.use((req, res, next) => {
+    if (!req.path.startsWith(COPILOT_ENDPOINT)) { next(); return; }
+    if (!copilot) { res.status(503).json({ error: 'Copilot needs OPENROUTER_API_KEY and INCIDENTOS_MODEL' }); return; }
+    copilot(req, res, next);
   });
   app.post('/api/logout', (req, res) => { const session = sessionOf(req); if (session) sessions.delete(session); res.clearCookie('incidentos_session'); res.json({ ok: true }); });
   const wrap = (handler: (req: express.Request<Record<string, string>>, res: express.Response) => unknown | Promise<unknown>): express.RequestHandler<Record<string, string>> => (req, res, next) => { Promise.resolve().then(() => handler(req, res)).catch(next); };

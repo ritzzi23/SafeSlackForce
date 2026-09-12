@@ -138,3 +138,9 @@ test('HTTP pairing, persisted fixture workflow, stale requests and private repor
     assert.match(new TextDecoder().decode(first.value), /event: snapshot.updated/); controller.abort(); await reader.cancel().catch(() => {});
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); s.store.close(); }
 });
+
+test('incident titles drop Slack mentions, quote markers and HTML entities', async () => {
+  const { slackTitle } = await import('../src/domain.js');
+  assert.equal(slackTitle('&gt; <@U0C1J667B0C> SYNTHETIC DEMO: Forklift &amp; pallet at Dock B'), 'SYNTHETIC DEMO: Forklift & pallet at Dock B');
+  assert.equal(slackTitle('<@U123>'), 'Incident report');
+});

@@ -50,6 +50,7 @@ import OfficeDirectory from "./OfficeDirectory";
 import { IncidentJourney, NotificationInbox, useJourneyEvidence } from "./IncidentJourney";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
+const IncidentCopilot = lazy(() => import("./IncidentCopilot"));
 type Chat = {
   id: string;
   agent: AgentId;
@@ -333,11 +334,11 @@ export default function App() {
     setSelected(id);
     setTab("chat");
   }
-  async function send(text = input) {
+  async function send(text = input, targetAgent?: AgentId) {
     if (!text.trim() || pending || sendLock.current) return;
     const question = text.trim();
     const id = crypto.randomUUID();
-    const target = selected;
+    const target = targetAgent ?? selected;
     setInput("");
     setTab("chat");
     setError("");
@@ -1309,6 +1310,16 @@ export default function App() {
             )}
           </section>
         </div>
+      )}
+      {paired && live && (
+        <Suspense fallback={null}>
+          <IncidentCopilot
+            snapshot={snapshot}
+            onFocus={(id) => { select(id); setRoomFocus(true); }}
+            onTab={setTab}
+            onAsk={(id, question) => send(question, id)}
+          />
+        </Suspense>
       )}
     </div>
   );

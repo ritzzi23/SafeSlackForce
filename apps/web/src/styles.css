@@ -2265,3 +2265,9 @@ h1 {
     font-size: 17px;
   }
 }
+
+/* CopilotKit approval card for agent questions that post to Slack. */
+.copilot-approval { display: grid; gap: 8px; padding: 12px; border: 1px solid #cbd4c8; border-radius: 12px; background: #fbfcf9; font-size: 13px; }
+.copilot-approval p { margin: 0; }
+.copilot-approval-note { color: #59645c; font-size: 12px; }
+.copilot-approval-actions { display: flex; gap: 8px; flex-wrap: wrap; }
