@@ -1,5 +1,26 @@
 # Main-branch integration — 12 September 2026
 
+## Live activation verified
+
+The local service is now running in **live mode**, using `openai/gpt-4.1-mini`.
+Verified: frontend proxy health, actual Slack Socket Mode connection, bot membership,
+dashboard pairing with an issued session cookie, and authorized incident-list access.
+A real two-call model/tool round trip passed and a labelled connection-check message
+was delivered to the demo channel. Provider-reported smoke-test cost: **$0.0001348**.
+The app's initial model allowance is $0.25; the provider key has its own $1 cap.
+The two-call smoke test has a separate persistent $0.02 allowance in
+`data/provider-check.sqlite`; it is not included in the main dashboard usage total.
+
+No human report/acknowledgement was fabricated. The live incident list is initially
+empty; send a new **synthetic** bot mention in the configured Slack channel to start
+the real incident workflow. Full incident orchestration, human acknowledgement,
+follow-up, image ingestion and microphone use still need that interactive rehearsal.
+After the backend restart, browser sessions issued by the previous process must pair
+again. API pairing was verified, not the user's browser cookie state.
+
+The sections below retain integration history; missing-key statements describe the
+earlier offline verification, not the current local configuration.
+
 Om's backend branch and Ritesh's `feat/ritesh-office-ui` (including his SafeSlackForce
 branding update `1dda5bd`) are merged on `main`.
 Ritesh's scene and layout are retained. Om owns all runtime agents, tools,

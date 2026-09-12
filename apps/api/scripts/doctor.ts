@@ -14,7 +14,7 @@ else {
   if (process.argv.includes('--live')) {
     const slack = async (method: string, args: object = {}) => {
       const res = await fetch(`https://slack.com/api/${method}`, { method: 'POST', signal: AbortSignal.timeout(15000),
-        headers: { Authorization: `Bearer ${c.botToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+        headers: { Authorization: `Bearer ${c.botToken}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(args as Record<string, string>) });
       const value = await res.json() as any;
       if (!res.ok || !value.ok) throw new Error(`Slack ${method}: ${value.error || res.status}`);
       return value;
