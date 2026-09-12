@@ -14,6 +14,7 @@ export default function Root() {
   useEffect(() => {
     document.title = hash === "#system-design" ? "SafeSlackForce · System design" : hash === "#presentation" ? "SafeSlackForce · Presentation" : "SafeSlackForce";
   }, [hash]);
+  if (hash === "#presentation-print") return <Suspense fallback={null}><Presentation print /></Suspense>;
   if (hash === "#system-design" || hash === "#presentation") {
     return <Suspense fallback={null}>{hash === "#system-design" ? <SystemDesign /> : <Presentation />}</Suspense>;
   }

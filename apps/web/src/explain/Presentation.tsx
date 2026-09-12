@@ -100,7 +100,7 @@ const SLIDES: Slide[] = [
   </> },
 ];
 
-export default function Presentation() {
+export default function Presentation({ print = false }: { print?: boolean }) {
   const [index, setIndex] = useState(0);
   const [full, setFull] = useState(false);
   const shell = useRef<HTMLDivElement>(null);
@@ -123,6 +123,21 @@ export default function Presentation() {
     return () => { window.removeEventListener("keydown", onKey); document.removeEventListener("fullscreenchange", onFull); };
   }, [go, toggleFull]);
   const slide = SLIDES[index];
+  if (print) {
+    // One landscape page per slide, used to export docs/SafeSlackForce-Presentation.pdf.
+    return (
+      <div className="print-deck">
+        {SLIDES.map((s, i) => (
+          <article key={s.label} className={`slide print-slide ${i === 0 || i === SLIDES.length - 1 ? "slide-hero" : ""}`}>
+            <p className="slide-kicker">{s.kicker}</p>
+            <h2>{s.title}</h2>
+            <div className="slide-body">{s.body}</div>
+            <span className="print-footer">SafeSlackForce · {String(i + 1).padStart(2, "0")} / {String(SLIDES.length).padStart(2, "0")}</span>
+          </article>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="explain-page">
       {!full && <ExplainNav current="presentation" />}

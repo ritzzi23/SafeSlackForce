@@ -126,6 +126,10 @@ work on a hosted Vercel build.
   replaced, why it won, and where it lives in the code.
 - **Presentation** (`/#presentation`): an 11-slide pitch deck. Arrow keys move, **F** goes fullscreen,
   Home and End jump. Every number on the slides is read off the build (`apps/web/src/explain/facts.ts`).
+- **PDF of the deck:** [docs/SafeSlackForce-Presentation.pdf](docs/SafeSlackForce-Presentation.pdf)
+  (11 landscape pages). To regenerate it after changing the slides, build, run `npx vite preview`
+  in `apps/web`, and print `/#presentation-print` with headless Chrome
+  (`--print-to-pdf --no-pdf-header-footer --virtual-time-budget=15000`).
 
 ## Architecture
 

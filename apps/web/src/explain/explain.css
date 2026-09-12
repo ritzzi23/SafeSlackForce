@@ -121,3 +121,11 @@
 .slide-links a { padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); background: #fbfbf8; color: var(--ink); text-decoration: none; font-weight: 600; }
 @media (max-width: 640px) { .decision-card dl div { grid-template-columns: 1fr; gap: 2px; } .deck-controls { justify-content: center; } }
 @media (prefers-reduced-motion: no-preference) { .slide { animation: slide-in 220ms ease-out; } @keyframes slide-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } } }
+
+/* Print view of the deck: one 16:9 landscape page per slide. */
+@page { size: 13.333in 7.5in; margin: 0; }
+.print-deck { background: #fff; }
+.print-slide { position: relative; width: 13.333in; height: 7.5in; min-height: 0; overflow: hidden; justify-content: center; padding: 0.6in 0.75in; break-after: page; page-break-after: always; animation: none !important; background: #fff; }
+.print-slide .arch-svg { min-width: 0; max-height: 4.4in; }
+.print-footer { position: absolute; left: 0.75in; bottom: 0.3in; font-size: 11px; font-weight: 700; letter-spacing: 0.6px; color: var(--muted); }
+@media print { html, body { background: #fff; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
