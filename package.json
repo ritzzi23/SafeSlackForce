@@ -18,7 +18,8 @@
     "doctor": "tsx apps/api/scripts/doctor.ts",
     "seed:office": "tsx apps/api/scripts/seed-office.ts",
     "configure:sponsors": "tsx apps/api/scripts/configure-sponsors.ts",
-    "check:research": "tsx apps/api/scripts/check-research.ts"
+    "check:research": "tsx apps/api/scripts/check-research.ts",
+    "check:workspace": "tsx apps/api/scripts/check-workspace.ts"
   },
   "engines": { "node": ">=22" },
   "overrides": { "qs": "^6.16.0" },

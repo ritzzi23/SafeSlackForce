@@ -5,7 +5,7 @@
 export const FACTS = {
   agents: 5,
   tools: 13, // specs in apps/api/src/agents.ts
-  backendTests: 44,
+  backendTests: 46,
   frontendTests: 20,
   deliveryAttempts: 3, // notifications.ts retry cap
   followupDefaultSeconds: 300, // FOLLOWUP_SECONDS default

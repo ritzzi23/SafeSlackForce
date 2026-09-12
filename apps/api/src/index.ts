@@ -12,6 +12,7 @@ import { Media } from './media.js';
 import { existsSync } from 'node:fs';
 import { OfficeDirectory } from './office.js';
 import { Autopilot } from './autopilot.js';
+import { AmbiguousWorkspace } from './workspace.js';
 
 const config = readConfig();
 if (config.mode === 'live' && [config.apiKey, config.model, config.appToken, config.botToken].some(x => !x)) throw new Error('Live mode requires OpenRouter model/key and both Slack tokens');
@@ -37,13 +38,15 @@ for (const job of store.list<any>('slack-job').filter(j => ['pending', 'running'
 for (const i of domain.all()) for (const a of i.snapshot.agents) if (a.status === 'working') domain.agent(i.snapshot.incidentId, a.id, 'failed', 'Server restarted during agent work');
 if (channel instanceof SlackChannel) channel.wire(domain, agents, (id, ts, files) => media.ingest(id, ts, files));
 autopilot.start();
+const workspace = config.ambiguousEnabled && config.ambiguousKey ? new AmbiguousWorkspace(domain, config.ambiguousKey) : undefined;
+workspace?.start();
 const app = createHttp(domain, agents, budget, new Research(config, budget, store), media);
 const server = app.listen(config.port, config.host, () => console.log(`SafeSlackForce API: http://${config.host}:${config.port} (${config.mode})`));
 if (channel instanceof SlackChannel) await channel.start(domain).catch(() => { domain.setConnection('disconnected'); console.error('Slack startup failed. Check credentials and restart; dashboard remains available.'); });
 const timer = setInterval(() => { void notifications.pump().catch(() => console.error('Notification processing failed')); }, 1000);
 let stopping = false;
 const shutdown = async () => {
-  if (stopping) return; stopping = true; clearInterval(timer); autopilot.stop();
+  if (stopping) return; stopping = true; clearInterval(timer); autopilot.stop(); workspace?.stop();
   const timeout = setTimeout(() => { console.error('Shutdown timed out; interrupted work will be visible after restart'); process.exit(1); }, 10000);
   server.close();
   await agents.drain();

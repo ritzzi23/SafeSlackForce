@@ -20,18 +20,19 @@ a physical action actually happened.
 3. [The agents](#the-agents)
 4. [Emergency call agent](#emergency-call-agent)
 5. [Incident copilot (CopilotKit)](#incident-copilot-copilotkit)
-6. [System design and presentation pages](#system-design-and-presentation-pages)
-7. [Architecture](#architecture)
-8. [Safety and reliability](#safety-and-reliability)
-9. [Run it locally](#run-it-locally)
-10. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
-11. [Configuration](#configuration)
-12. [Hosting](#hosting)
-13. [API reference](#api-reference)
-14. [Project structure](#project-structure)
-15. [Testing](#testing)
-16. [Built with](#built-with)
-17. [Hackathon note](#hackathon-note)
+6. [Ambiguous Workspace follow-through](#ambiguous-workspace-follow-through)
+7. [System design and presentation pages](#system-design-and-presentation-pages)
+8. [Architecture](#architecture)
+9. [Safety and reliability](#safety-and-reliability)
+10. [Run it locally](#run-it-locally)
+11. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
+12. [Configuration](#configuration)
+13. [Hosting](#hosting)
+14. [API reference](#api-reference)
+15. [Project structure](#project-structure)
+16. [Testing](#testing)
+17. [Built with](#built-with)
+18. [Hackathon note](#hackathon-note)
 
 ---
 
@@ -116,13 +117,33 @@ dashboard is paired with a live or fixture backend.
 Try: *"What is blocked right now?"*, *"Show me the Evidence desk"*, or
 *"Ask Records to prepare the handoff report."*
 
+## Ambiguous Workspace follow-through
+
+Incidents create work that outlives the Slack thread. When `AMBIGUOUS_ENABLED=true`, the API mirrors
+each incident into the team's **Ambiguous Workspace**:
+
+- **Tasks.** Every human-owned incident task becomes an urgent task on the Ambiguous board, titled
+  with the incident ID and linked back to the Slack thread.
+- **Status sync.** Task changes follow the board columns: assigned is *todo*, acknowledged is
+  *in progress*, needs review or failed is *blocked*, completed is *done*.
+- **Handoff docs.** Every saved handoff report is published once as an Ambiguous doc.
+- **Visible evidence.** Each mirror action is recorded in the incident activity with the Ambiguous ID.
+
+The mirror is one-way on purpose: editing the board can never confirm a physical action, and Slack
+remains the system of record. Failures are logged without retry loops.
+
+Setup: create an agent workspace with `POST https://app.ambiguous.ai/api/auth/signup-agent`
+(`agent_display_name`, `human_email`), put the returned `ak_…` key in `.env` as `AMBIGUOUS_API_KEY`,
+and set `AMBIGUOUS_ENABLED=true`. `npm run check:workspace` mirrors one synthetic in-memory incident
+to confirm the key works. Code: [apps/api/src/workspace.ts](apps/api/src/workspace.ts).
+
 ## System design and presentation pages
 
 Two pages inside the dashboard, linked from the header. They load without pairing, so they also
 work on a hosted Vercel build.
 
 - **System design** (`/#system-design`): the high-level architecture diagram, the incident lifecycle,
-  the agent and tool table, and a register of 18 design decisions. Each decision says what it
+  the agent and tool table, and a register of 19 design decisions. Each decision says what it
   replaced, why it won, and where it lives in the code.
 - **Presentation** (`/#presentation`): an 11-slide pitch deck. Arrow keys move, **F** goes fullscreen,
   Home and End jump. Every number on the slides is read off the build (`apps/web/src/explain/facts.ts`).
@@ -255,6 +276,7 @@ All settings live in `.env` (gitignored). See [`.env.example`](.env.example).
 | `MODEL_CALL_LIMIT`, `MODEL_MAX_ROUNDS`, `MODEL_BUDGET_USD`, `MODEL_CALL_RESERVE_USD` | Model spending and loop limits |
 | `EXA_API_KEY`, `EXA_ENABLED`, `EXA_CALL_LIMIT` | Web research |
 | `SLACK_FILES_ENABLED`, `VISION_ENABLED`, `VISION_MODEL` | Photo ingestion and description |
+| `AMBIGUOUS_ENABLED`, `AMBIGUOUS_API_KEY` | Mirror tasks and reports to Ambiguous Workspace |
 | `COPILOT_CALL_LIMIT` | Dashboard copilot requests per server run (default 40) |
 | `OFFICE_DEMO_ENABLED` | Synthetic office directory (run `npm run seed:office` first) |
 | `DATABASE_PATH` | Leave blank for separate fixture and live databases |
@@ -308,6 +330,7 @@ apps/
       autopilot.ts     Automatic report follow-through
       research.ts      Exa research
       copilot.ts       CopilotKit runtime (OpenRouter via OpenAI adapter)
+      workspace.ts     Ambiguous Workspace task and document mirror
       media.ts         Slack photo ingestion and vision
       office.ts        Synthetic office directory
       store.ts         SQLite (sql.js) entities and event log
@@ -345,6 +368,7 @@ call agent.
 
 - **OpenRouter** for agent models with tool calling
 - **CopilotKit** for the in-dashboard incident copilot with human approval
+- **Ambiguous AI** Workspace API for task-board and document follow-through
 - **Exa** for web research
 - **Slack Bolt** (Socket Mode)
 - **Node.js**, **TypeScript**, **Express**, **zod**, **sql.js**

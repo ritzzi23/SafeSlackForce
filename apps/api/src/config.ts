@@ -27,6 +27,7 @@ export function readConfig(env = process.env) {
     exaCallLimit: z.coerce.number().int().positive().parse(env.EXA_CALL_LIMIT ?? 5),
     filesEnabled: env.SLACK_FILES_ENABLED === 'true', visionEnabled: env.VISION_ENABLED === 'true',
     visionModel: env.VISION_MODEL || '',
+    ambiguousEnabled: env.AMBIGUOUS_ENABLED === 'true', ambiguousKey: env.AMBIGUOUS_API_KEY ?? '',
     copilotCallLimit: z.coerce.number().int().positive().parse(env.COPILOT_CALL_LIMIT ?? 40),
   };
 }

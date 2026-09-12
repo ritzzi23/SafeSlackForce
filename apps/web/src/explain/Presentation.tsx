@@ -51,7 +51,7 @@ const SLIDES: Slide[] = [
   </> },
   { label: "Architecture", kicker: "04 · System design", title: "One thread, one process, five agents", body: <>
     <ArchitectureDiagram />
-    <p className="slide-note">Socket Mode needs no public webhook · every change is versioned and logged · the dashboard streams events and resumes after a disconnect. Full register: 18 design decisions on the System design page.</p>
+    <p className="slide-note">Socket Mode needs no public webhook · every change is versioned and logged · the dashboard streams events and resumes after a disconnect. Full register: 19 design decisions on the System design page.</p>
   </> },
   { label: "Agents", kicker: "05 · The agent team", title: "The model proposes. The server decides.", body: <>
     <div className="slide-agents">
@@ -66,10 +66,11 @@ const SLIDES: Slide[] = [
       <Card title="Everything is sourced">Facts are recorded as reported, with the Slack message they came from. Reports cite their sources.</Card>
     </div>
   </> },
-  { label: "Surfaces", kicker: "07 · More ways in", title: "An emergency line and a copilot, same guardrails", body: <>
-    <div className="slide-cols two">
+  { label: "Surfaces", kicker: "07 · More ways in", title: "A voice line, a copilot and a workspace, same guardrails", body: <>
+    <div className="slide-cols">
       <Card title="Emergency call agent">Hands-free for the person on site: {FACTS.callQuestions} spoken triage questions, answers by voice or text. Words like "unconscious" or "trapped" trigger "Call 911 now" from a fixed rule that works even if the model is down. The reviewed call record goes into the thread for the Commander.</Card>
       <Card title="CopilotKit incident copilot">Reads live incident state, focuses agent desks and opens panels. Before it asks an agent anything that posts to Slack, it shows an Approve and send card. Runs inside our API behind the same session and spend cap.</Card>
+      <Card title="Ambiguous Workspace follow-through">Every human-owned incident task is mirrored onto the team's Ambiguous task board with its status kept in sync, and each handoff report is published as an Ambiguous doc. One-way, so the board can never confirm a physical action.</Card>
     </div>
   </> },
   { label: "Engineering", kicker: "08 · Built for failure", title: "Designed for timeouts, restarts and double clicks", body: <>
@@ -96,7 +97,7 @@ const SLIDES: Slide[] = [
       <a href="#system-design">System design</a>
       <a href="https://github.com/ritzzi23/SafeSlackForce" target="_blank" rel="noreferrer">github.com/ritzzi23/SafeSlackForce</a>
     </div>
-    <p className="slide-note">Built by Om and Ritesh during the hackathon. OpenRouter · Exa · CopilotKit · Slack Bolt · React · three.js</p>
+    <p className="slide-note">Built by Om and Ritesh during the hackathon. OpenRouter · Exa · CopilotKit · Ambiguous AI · Slack Bolt · React · three.js</p>
   </> },
 ];
 

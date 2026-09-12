@@ -39,7 +39,7 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   });
   const equal = (a: string, b: string) => { const x = Buffer.from(a); const y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
   const sessionOf = (req: express.Request) => /(?:^|;\s*)incidentos_session=([a-f0-9]+)/.exec(req.headers.cookie ?? '')?.[1];
-  app.get('/health', (_req, res) => res.json({ ok: true, mode: domain.config.mode, slack: domain.connection, modelConfigured: Boolean(domain.config.apiKey && domain.config.model) }));
+  app.get('/health', (_req, res) => res.json({ ok: true, mode: domain.config.mode, slack: domain.connection, modelConfigured: Boolean(domain.config.apiKey && domain.config.model), ambiguousWorkspace: Boolean(domain.config.ambiguousEnabled && domain.config.ambiguousKey) }));
   app.post('/api/session', (req, res) => {
     const token = typeof req.body?.token === 'string' ? req.body.token : '';
     if (!equal(token, domain.config.token)) { res.status(401).json({ error: 'Invalid pairing token' }); return; }
