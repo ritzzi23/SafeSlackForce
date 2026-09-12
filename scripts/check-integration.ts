@@ -48,7 +48,7 @@ const stream = await fetch(`/api/incidents/${id}/events?after=0`, { signal: Abor
 assert.match(stream.headers.get('content-type') || '', /text\/event-stream/);
 const reader = stream.body!.getReader();
 let text = '';
-while (!text.includes('\n\n')) {
+while (!text.includes('event: snapshot.updated')) {
   const chunk = await reader.read();
   if (chunk.done) break;
   text += new TextDecoder().decode(chunk.value);
@@ -59,6 +59,14 @@ const dataLine = text.split('\n').find(line => line.startsWith('data: '));
 assert.ok(dataLine);
 assert.equal(snapshotSchema.parse(JSON.parse(dataLine.slice(6)).snapshot).incidentId, id);
 snapshot = await api.snapshot(id);
+// An idle stream must open through the proxy immediately, without waiting for a
+// new incident event or the 15-second heartbeat.
+const idle = await fetch(`/api/incidents/${id}/events?after=${snapshot.cursor}`, { signal: AbortSignal.timeout(2000) });
+assert.equal(idle.status, 200);
+const idleReader = idle.body!.getReader();
+const hello = await idleReader.read();
+assert.match(new TextDecoder().decode(hello.value), /^: connected\n\n/);
+await idleReader.cancel();
 const voiceId = randomUUID();
 await api.transcript(id, 'SYNTHETIC UPDATE: the site medic is reported en route; external emergency contact remains unconfirmed.', snapshot.version, voiceId);
 let voice = await api.transcriptStatus(voiceId);

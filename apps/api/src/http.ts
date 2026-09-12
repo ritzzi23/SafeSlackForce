@@ -70,6 +70,8 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
     const raw = req.query.after ?? String(req.headers['last-event-id'] ?? '').split(':').at(-1) ?? 0;
     const after = z.coerce.number().int().nonnegative().parse(raw || 0);
     res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Connection', 'keep-alive'); res.setHeader('X-Accel-Buffering', 'no'); res.flushHeaders();
+    // Proxies may hold headers until the first body chunk, even after flushHeaders.
+    res.write(': connected\n\n');
     let cursor = after > snapshot.cursor ? 0 : after;
     const send = (event: StreamUpdate) => {
       if (event.snapshot.incidentId !== id || event.cursor <= cursor) return;
