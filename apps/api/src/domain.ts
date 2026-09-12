@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type IncidentSnapshot, type SourceRef, type StreamUpdate, type TaskView } from '@incidentos/contracts';
 import type { Config } from './config.js';
@@ -70,10 +70,10 @@ export class Incidents {
     const refs = fn(i); this.commit(i, text, refs || []); return this.get(id);
   }
   addMessage(id: string, input: { ts: string; text: string; user: string; deleted?: boolean }) {
-    const current = this.get(id); const old = current.messages.find(m => m.id === input.ts);
+    const current = this.get(id); const old = current.messages.filter(m => m.id === input.ts).at(-1);
     if (old && old.text === input.text && Boolean(old.deleted) === Boolean(input.deleted)) return false;
     this.mutate(id, old ? 'Source message corrected or removed; affected tasks require review' : 'New participant update', i => {
-      const previous = i.messages.find(m => m.id === input.ts);
+      const previous = i.messages.filter(m => m.id === input.ts).at(-1);
       if (previous) { previous.deleted = true; for (const task of i.snapshot.tasks) if (task.sources.some(s => s.id === previous.source.id)) { task.status = 'needs_review'; task.version++; task.blockedReason = 'Source was corrected or removed'; } }
       const sourceId = old ? `${input.ts}:${randomUUID().slice(0, 8)}` : input.ts;
       const source: SourceRef = { id: sourceId, kind: 'slack_message', label: `${input.user}: ${input.deleted ? 'removed message' : 'update'}`, url: this.slackUrl(i.team, i.channel, input.ts) };
@@ -128,8 +128,8 @@ export class Incidents {
       if (i.snapshot.status === 'closed') throw new DomainError(409, 'Incident already closed');
       const report = i.snapshot.reports.at(-1);
       if (!report) throw new DomainError(409, 'Generate a report first');
-      const saved = this.store.get<{ sourceVersion: number }>(report.id);
-      if (!saved || saved.sourceVersion !== i.snapshot.version - 1) throw new DomainError(409, 'Report is stale; regenerate before handoff');
+      const saved = this.store.get<{ fingerprint: string }>(report.id);
+      if (!saved || saved.fingerprint !== this.fingerprint(i)) throw new DomainError(409, 'Report is stale; regenerate before handoff');
       if (i.snapshot.tasks.some(t => !t.owner && !['completed', 'cancelled'].includes(t.status))) throw new DomainError(409, 'Open tasks require owners');
       i.snapshot.status = 'handed_over'; i.acceptedBy = actor;
       return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted handoff` }];
@@ -151,11 +151,14 @@ export class Incidents {
       ...i.facts.map(f => `- [${f.state}] ${clean(f.text)} (sources: ${f.sourceIds.join(', ')})`), '', '## Timeline', '',
       ...i.snapshot.activity.map(a => `- ${a.timestamp}: ${clean(a.text)}${a.sources.length ? ` [${a.sources.map(s => s.id).join(', ')}]` : ''}`), '', '## Summary source references', '',
       ...refs.map(r => `- ${r.id}: ${clean(r.label)}${r.url ? ` (${r.url})` : ''}`), '', 'This report records coordination and reported confirmations; it does not certify site safety.', ''].join('\n');
-    this.store.transaction(() => this.store.put(reportId, 'report', { incidentId: id, markdown, sourceVersion: i.snapshot.version }));
+    this.store.transaction(() => this.store.put(reportId, 'report', { incidentId: id, markdown, fingerprint: this.fingerprint(i) }));
     i.snapshot.reports.push({ id: reportId, version: i.snapshot.reports.length + 1, title: `Handoff report ${i.snapshot.reports.length + 1}`, downloadUrl: `/api/incidents/${id}/reports/${reportId}` });
     this.commit(i, 'Saved sourced handoff report', refs); return { reportId, markdown };
   }
   setConnection(state: IncidentSnapshot['slackConnection']) {
     this.connection = state; for (const i of this.all()) this.commit(i, `Slack ${state}`);
+  }
+  private fingerprint(i: Incident) {
+    return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, location: i.snapshot.location })).digest('hex');
   }
 }

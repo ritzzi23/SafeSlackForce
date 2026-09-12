@@ -1,0 +1,33 @@
+import { readConfig } from './config.js';
+import { Store } from './store.js';
+import { Incidents } from './domain.js';
+import { Budget } from './budget.js';
+import { OpenRouter } from './model.js';
+import { Research } from './research.js';
+import { FixtureChannel, Notifications } from './notifications.js';
+import { Agents } from './agents.js';
+import { SlackChannel } from './slack.js';
+import { createHttp } from './http.js';
+
+const config = readConfig();
+if (config.mode === 'live' && [config.apiKey, config.model, config.appToken, config.botToken].some(x => !x)) throw new Error('Live mode requires OpenRouter model/key and both Slack tokens');
+if (config.mode === 'live' && [config.team, config.channel, config.lead, config.backup, ...config.supervisors].some(x => /^(TDEMO|CDEMO|ULEAD|UBACKUP|USUPERVISOR)$/.test(x))) throw new Error('Replace demo Slack IDs with actual workspace, channel and role IDs for live mode');
+const store = await Store.open(config.database);
+const domain = new Incidents(store, config); const budget = new Budget(store);
+const channel = config.mode === 'live' ? new SlackChannel(config) : new FixtureChannel();
+const notifications = new Notifications(domain, channel); notifications.recover();
+const agents = new Agents(domain, notifications, config.mode === 'live' ? new OpenRouter(config, budget) : undefined);
+for (const r of store.list<any>('request').filter(r => r.status === 'pending')) store.transaction(() => store.put(`request-${r.requestId}`, 'request', { ...r, status: 'failed', error: 'Server restarted during this request' }));
+for (const i of domain.all()) for (const a of i.snapshot.agents) if (a.status === 'working') domain.agent(i.snapshot.incidentId, a.id, 'failed', 'Server restarted during agent work');
+if (channel instanceof SlackChannel) channel.wire(domain, agents);
+const app = createHttp(domain, agents, budget, new Research(config, budget, store));
+const server = app.listen(config.port, config.host, () => console.log(`IncidentOS API: http://${config.host}:${config.port} (${config.mode})`));
+if (channel instanceof SlackChannel) await channel.start(domain);
+const timer = setInterval(() => { void notifications.pump().catch(() => console.error('Notification processing failed')); }, 1000);
+let stopping = false;
+const shutdown = async () => {
+  if (stopping) return; stopping = true; clearInterval(timer);
+  if (channel instanceof SlackChannel) await channel.stop(domain);
+  server.close(); store.close(); process.exit(0);
+};
+process.on('SIGINT', () => void shutdown()); process.on('SIGTERM', () => void shutdown());

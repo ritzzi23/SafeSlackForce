@@ -8,3 +8,7 @@ are documented in [the implementation plan](docs/INCIDENTOS-SLACK-BUILD-PLAN.md)
 
 For the direct ownership checklist and integration checkpoints, use the
 [separate build split](docs/BUILD-SPLIT.md).
+
+Backend work is on `feat/om-backend-agents`. Start with the
+[backend setup and frontend API contract](docs/BACKEND-SETUP.md) and
+[OpenRouter/Exa credit budget](docs/CREDIT-BUDGET.md).
