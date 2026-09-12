@@ -7,7 +7,7 @@ const BOXES: Box[] = [
   { x: 250, y: 90, w: 170, h: 80, title: "Slack thread", sub: "System of record", tone: "slack" },
   { x: 480, y: 40, w: 190, h: 60, title: "Slack Bolt · Socket Mode", sub: "Intake + de-duplication", tone: "api" },
   { x: 480, y: 130, w: 190, h: 70, title: "Incident domain", sub: "Versioned state · roles", tone: "api" },
-  { x: 480, y: 230, w: 190, h: 60, title: "Notification + response pumps", sub: "Backup chase · alerts · scheduled updates", tone: "api" },
+  { x: 480, y: 220, w: 190, h: 80, title: "Notification +\nresponse pumps", sub: "Backup chase · alerts\nScheduled updates", tone: "api" },
   { x: 480, y: 320, w: 190, h: 60, title: "Express API", sub: "Paired session · SSE", tone: "api" },
   { x: 730, y: 40, w: 220, h: 70, title: "Commander + 4 specialists", sub: "Per-agent tool allowlists", tone: "ai" },
   { x: 730, y: 140, w: 220, h: 56, title: "OpenRouter · Exa", sub: "Spend reserved before each call", tone: "ai" },
@@ -16,8 +16,8 @@ const BOXES: Box[] = [
 ];
 const LINES: [number, number, number, number, string?][] = [
   [190, 72, 250, 120], [190, 182, 250, 150], [420, 120, 480, 70, "events"], [575, 100, 575, 130],
-  [670, 150, 730, 80, "tool calls"], [840, 110, 840, 140], [670, 175, 730, 254, "commit"], [575, 200, 575, 230],
-  [480, 255, 420, 150, "notify"], [575, 290, 575, 320], [670, 350, 730, 350, "SSE"], [190, 332, 480, 350, "reviewed call record"],
+  [670, 150, 730, 80, "tool calls"], [840, 110, 840, 140], [670, 175, 730, 254, "commit"], [575, 200, 575, 220],
+  [480, 255, 420, 150, "notify"], [575, 300, 575, 320], [670, 350, 730, 350, "SSE"], [190, 332, 480, 350, "reviewed call record"],
 ];
 export default function ArchitectureDiagram() {
   return (
@@ -32,13 +32,22 @@ export default function ArchitectureDiagram() {
             {label && <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 6} className="arch-label" textAnchor="middle">{label}</text>}
           </g>
         ))}
-        {BOXES.map(b => (
+        {BOXES.map(b => {
+          const titles = b.title.split("\n");
+          const subtitles = b.sub?.split("\n") ?? [];
+          const extraHeight = (titles.length - 1) * 17 + Math.max(0, subtitles.length - 1) * 14;
+          const titleY = b.y + b.h / 2 - (b.sub ? 4 : -5) - extraHeight / 2;
+          return (
           <g key={b.title} className={`arch-box tone-${b.tone}`}>
             <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={12} />
-            <text x={b.x + b.w / 2} y={b.y + b.h / 2 - (b.sub ? 4 : -5)} textAnchor="middle" className="arch-title">{b.title}</text>
-            {b.sub && <text x={b.x + b.w / 2} y={b.y + b.h / 2 + 14} textAnchor="middle" className="arch-sub">{b.sub}</text>}
+            <text textAnchor="middle" className="arch-title">
+              {titles.map((line, i) => <tspan key={i} x={b.x + b.w / 2} y={titleY + i * 17}>{line}</tspan>)}
+            </text>
+            {b.sub && <text textAnchor="middle" className="arch-sub">
+              {subtitles.map((line, i) => <tspan key={i} x={b.x + b.w / 2} y={titleY + (titles.length - 1) * 17 + 18 + i * 14}>{line}</tspan>)}
+            </text>}
           </g>
-        ))}
+        ); })}
       </svg>
       <ul className="arch-legend">
         <li><i className="tone-human" />People</li><li><i className="tone-slack" />Slack</li><li><i className="tone-api" />API process</li>
