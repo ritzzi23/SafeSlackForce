@@ -35,7 +35,7 @@ export class OpenRouter implements Model {
     try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST', signal: AbortSignal.timeout(45000),
-      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json', 'X-OpenRouter-Title': 'IncidentOS' },
+      headers: { Authorization: `Bearer ${this.config.apiKey}`, 'Content-Type': 'application/json', 'X-OpenRouter-Title': 'SafeSlackForce' },
       body: JSON.stringify({ model: this.config.model, messages, tools, tool_choice: 'auto', max_tokens: 1000, temperature: 0.1 }),
     });
     if (!response.ok) throw new Error(`Model provider returned HTTP ${response.status}`);

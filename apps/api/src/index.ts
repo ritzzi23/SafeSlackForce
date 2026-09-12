@@ -31,7 +31,7 @@ for (const job of store.list<any>('slack-job').filter(j => ['pending', 'running'
 for (const i of domain.all()) for (const a of i.snapshot.agents) if (a.status === 'working') domain.agent(i.snapshot.incidentId, a.id, 'failed', 'Server restarted during agent work');
 if (channel instanceof SlackChannel) channel.wire(domain, agents, (id, ts, files) => media.ingest(id, ts, files));
 const app = createHttp(domain, agents, budget, new Research(config, budget, store), media);
-const server = app.listen(config.port, config.host, () => console.log(`IncidentOS API: http://${config.host}:${config.port} (${config.mode})`));
+const server = app.listen(config.port, config.host, () => console.log(`SafeSlackForce API: http://${config.host}:${config.port} (${config.mode})`));
 if (channel instanceof SlackChannel) await channel.start(domain).catch(() => { domain.setConnection('disconnected'); console.error('Slack startup failed. Check credentials and restart; dashboard remains available.'); });
 const timer = setInterval(() => { void notifications.pump().catch(() => console.error('Notification processing failed')); }, 1000);
 let stopping = false;

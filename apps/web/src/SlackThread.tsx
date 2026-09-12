@@ -9,6 +9,7 @@ import {
 import type { IncidentSnapshot, SourceRef } from "@incidentos/contracts";
 import { api, safeUrl } from "./api";
 import VoiceUpdate from "./VoiceUpdate";
+import { PROJECT_NAME, DEMO_CHANNEL } from "./branding";
 type Message = {
   id: string;
   text: string;
@@ -62,7 +63,7 @@ export default function SlackThread({
     {
       name: "Om",
       initials: "OM",
-      text: "@IncidentOS Forklift incident at Loading Dock B. One person is reported injured.",
+      text: `@${PROJECT_NAME} Forklift incident at Loading Dock B. One person is reported injured.`,
       color: "#d9e4d6",
       time: "10:32",
     },
@@ -125,7 +126,7 @@ export default function SlackThread({
           <Hash size={19} />
         </span>
         <div>
-          <h3>{connected ? "Incident source thread" : "incidentos-demo"}</h3>
+          <h3>{connected ? "Incident source thread" : DEMO_CHANNEL}</h3>
           <p>
             {connected ? snapshot.incidentId : "Synthetic Slack conversation"}
           </p>

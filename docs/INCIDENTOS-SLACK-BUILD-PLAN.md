@@ -1,4 +1,4 @@
-# SafeSlackForce / IncidentOS: Slack Workflow and Om / Ritesh Build Split
+# SafeSlackForce: Slack Workflow and Om / Ritesh Build Split
 
 12 September 2026. Current implementation plan for the hackathon build.
 This is a development specification, not a claim that the integrations are implemented.
@@ -15,12 +15,12 @@ Current implementation status: [Om's backend readiness checklist](OM-BACKEND-REA
 - Both build against the shared contract in this plan and integrate before visual polish.
 
 Problem: after an incident report, someone must establish ownership, chase acknowledgements
-and reconcile conflicting updates. IncidentOS performs that coordination and leaves evidence
+and reconcile conflicting updates. SafeSlackForce performs that coordination and leaves evidence
 of what was done and what remains outstanding.
 
 ## 2. The workflow from Slack to the office
 
-Use one pre-created Slack demo channel, for example #incidentos-demo. Invite the app and both
+Use one pre-created Slack demo channel, for example #safeslackforce-demo. Invite the app and both
 builders' Slack users. Each incident starts with a root message; its thread holds that incident's
 updates. Dedicated channels per incident can be added later.
 
@@ -44,7 +44,7 @@ All agent/task events also update Ritesh's 3D office.
 
 Example root message:
 
-> @IncidentOS Forklift incident at Loading Dock B. One person is reported injured.
+> @SafeSlackForce Forklift incident at Loading Dock B. One person is reported injured.
 
 The bot replies in the root message's thread with an incident card and dashboard link.
 The Commander delegates procedure lookup and contact coordination. A witness replies in
@@ -61,7 +61,7 @@ Reference inspected:
 
 The image has an off-white canvas, floating isometric department platforms, desks and avatars,
 connecting walkways, compact department cards and a persistent activity panel on the right.
-Adapt that composition with original geometry and styling. The center in IncidentOS contains
+Adapt that composition with original geometry and styling. The center in SafeSlackForce contains
 the Commander agent and incident board, replacing the reference's central knowledge hub.
 
 ### Spatial composition
@@ -86,7 +86,7 @@ Walkway geometry can be static. Animate a connection only when a real handoff ev
 
 ### Screen composition
 
-- Header: IncidentOS, selected incident, Slack connection state and Open Slack Thread link.
+- Header: SafeSlackForce, selected incident, Slack connection state and Open Slack Thread link.
 - Main canvas: roughly 70% of desktop width, with the Commander centered in the available area.
 - Right panel: roughly 30%, with a practical minimum width for readable tasks and agent chat.
 - Lower canvas controls: zoom in, zoom out and reset camera.
@@ -221,7 +221,7 @@ suppress reminders after the relevant task is acknowledged.
 ### Voice, files and QR under the Slack decision
 
 Initial reporting uses Slack text, including text entered through device dictation. This is
-dictated reporting, not an IncidentOS audio-transcription feature. A browser voice composer can
+dictated reporting, not an SafeSlackForce audio-transcription feature. A browser voice composer can
 be added later: display the transcript, confirm it, then send through the authorized backend
 into the same Slack thread. No parallel browser conversation is created.
 

@@ -25,7 +25,7 @@ const call = (name: string, args: object = {}): Completion => ({ content: null, 
 test('all five agent roles execute real tools with a scripted model transport, including report persistence', async () => {
   const roles = new Set<string>();
   const model: Model = { async complete(messages: ModelMessage[]) {
-    const role = /^You are IncidentOS (\w+)/.exec(messages[0].content!)![1]; roles.add(role);
+    const role = /^You are SafeSlackForce (\w+)/.exec(messages[0].content!)![1]; roles.add(role);
     const previous = messages.filter(m => m.role === 'assistant').flatMap(m => m.tool_calls ?? []).map(t => t.function.name);
     const delegated = messages.filter(m => m.role === 'assistant').flatMap(m => m.tool_calls ?? []).filter(t => t.function.name === 'delegate').map(t => JSON.parse(t.function.arguments).agent);
     if (!previous.includes('read_incident')) return call('read_incident');

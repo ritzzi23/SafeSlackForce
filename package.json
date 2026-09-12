@@ -5,9 +5,9 @@
   "workspaces": ["apps/api", "apps/web", "packages/contracts"],
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "dev:web": "npm run dev --workspace=@incidentos/web",
-    "build": "npm run typecheck && npm run build --workspace=@incidentos/web",
-    "test:all": "npm test && npm test --workspace=@incidentos/web",
+    "dev:web": "npm run dev --workspace=@safeslackforce/web",
+    "build": "npm run typecheck && npm run build --workspace=@safeslackforce/web",
+    "test:all": "npm test && npm test --workspace=@safeslackforce/web",
     "check:integration": "tsx scripts/check-integration.ts",
     "dev:api": "tsx watch apps/api/src/index.ts",
     "start:api": "tsx apps/api/src/index.ts",

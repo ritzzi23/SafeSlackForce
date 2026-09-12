@@ -1,6 +1,7 @@
 # Main-branch integration — 12 September 2026
 
-Om's backend branch and Ritesh's `feat/ritesh-office-ui` are merged on `main`.
+Om's backend branch and Ritesh's `feat/ritesh-office-ui` (including his SafeSlackForce
+branding update `1dda5bd`) are merged on `main`.
 Ritesh's scene and layout are retained. Om owns all runtime agents, tools,
 Slack behavior, state and APIs; Ritesh owns frontend presentation.
 
@@ -27,7 +28,14 @@ session, persisted fixture, owned tasks, sources, stale-version rejection,
 queued Records answer, Markdown download and SSE replay. It creates one labelled
 fixture incident and does not call external providers.
 
+Final check: **25 backend tests + 11 frontend tests passed**, production build
+passed, and the running frontend-proxy integration check passed, including reviewed
+update relay. Provider usage for this rehearsal remained zero.
+
 Slack bot authentication and public demo-channel membership have been verified.
+Both configured human members are also in the demo channel. The installed Slack
+app still has its existing **IncidentOS Demo** name in **#incidentos-demo**; product
+branding changes do not rename external Slack resources or require reinstalling.
 App-token connection-URL creation was verified earlier; that is not a completed
 Socket Mode end-to-end rehearsal. Live startup still requires an OpenRouter API
 key and a tool-capable model. Do not call this production ready or a verified live

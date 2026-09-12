@@ -1,4 +1,4 @@
-# IncidentOS frontend — Ritesh’s workspace
+# SafeSlackForce frontend — Ritesh’s workspace
 
 A working React / Three.js frontend with an original cutaway warehouse command office, central Commander, four specialist desks, agent inspection and conversation, tasks, evidence sources, timeline, and handoff report access.
 
