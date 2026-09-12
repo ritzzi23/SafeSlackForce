@@ -45,7 +45,7 @@ export class SlackIntake {
         try { await this.files(id, message.ts, files); this.domain.store.transaction(() => this.domain.store.put(filesKey, 'slack-files', { id })); }
         catch { this.domain.agent(id, 'evidence', 'failed', 'Attachment ingestion failed; text evidence remains available'); }
       }
-      await this.agents.run(id, 'commander', 'Read the updated incident, coordinate outstanding tasks and inspect relevant evidence. Do not repeat completed work.');
+      await this.agents.coordinate(id, 'Read the updated incident, coordinate outstanding tasks and inspect relevant evidence. Do not repeat completed work.');
       job.state = 'done'; this.domain.store.transaction(() => this.domain.store.put(jobId, 'slack-job', job));
     }).catch(() => {
       job.state = 'failed'; this.domain.store.transaction(() => this.domain.store.put(jobId, 'slack-job', job));

@@ -115,10 +115,13 @@ export class Incidents {
     a.currentTaskId = `run-${randomUUID()}`; a.status = 'working'; a.summary = task;
     this.commit(i, `Commander delegated: ${task}`, [], { from: 'commander', to: target, taskId: a.currentTaskId });
   }
+  matchingProcedureSource(id: string) {
+    return this.get(id).messages.find(m => !m.deleted && /\bforklift\b/i.test(m.text) && /\bdock\b/i.test(m.text));
+  }
   applyProcedure(id: string) {
     const i = this.get(id);
     if (i.snapshot.status === 'closed') throw new DomainError(409, 'Incident is closed');
-    const report = i.messages.find(m => !m.deleted && /\bforklift\b/i.test(m.text) && /\bdock\b/i.test(m.text));
+    const report = this.matchingProcedureSource(id);
     if (!report) throw new DomainError(409, 'No matching approved procedure. Ask the site lead; do not invent one.');
     if (procedure.tasks.every(template => i.snapshot.tasks.some(t => t.id === template.key))) return i.snapshot.tasks;
     const refs = this.source(i, [procedure.id, report.source.id]);
