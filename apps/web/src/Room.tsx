@@ -365,7 +365,7 @@ export default function Room({ snapshot }: { snapshot: IncidentSnapshot }) {
       />
       <Sign
         text={
-          snapshot.status === "handed_over"
+          !snapshot.incidentId ? "TEAM ON STANDBY" : snapshot.status === "handed_over"
             ? "HANDOFF ACCEPTED"
             : "RESPONSE IN PROGRESS"
         }

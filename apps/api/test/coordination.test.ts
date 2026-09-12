@@ -10,6 +10,9 @@ import { Notifications, FixtureChannel } from '../src/notifications.js';
 import { Store } from '../src/store.js';
 import { OfficeDirectory } from '../src/office.js';
 import { seedOffice } from '../src/seed-office.js';
+import { createHttp } from '../src/http.js';
+import { Budget } from '../src/budget.js';
+import { Research } from '../src/research.js';
 import { Media } from '../src/media.js';
 import type { Completion, Model } from '../src/model.js';
 
@@ -201,6 +204,10 @@ test('evidence review rejects fabricated locations and removed sources, and perm
     await agents.run(id, 'evidence', 'Review');
     assert.equal(domain.get(id).facts.length, 0, 'validation must be atomic');
     assert.equal(domain.get(id).snapshot.location, 'Not yet confirmed');
+    input = { location: null, observations: [], noObservationsReason: 'No review yet.', noLocationReason: 'No confirmed location provided; only reported location is available.' };
+    expectedError = 'Independent confirmation is not required';
+    await agents.run(id, 'evidence', 'Review reported location');
+    assert.equal(domain.get(id).evidenceReview, undefined);
     domain.addMessage(id, { ts: 'source-1', user: 'U', text: '', deleted: true });
     input = { location: null, observations: [{ text: 'Stale observation', sources: ['source-1'] }], noObservationsReason: null, noLocationReason: 'No active location source remains.' };
     expectedError = 'Unknown or removed source';
@@ -281,5 +288,52 @@ test('Evidence receives only existing active image IDs, and no image tool for te
     domain.mutate(id, 'Delete the attachment source', i => { i.messages[0].deleted = true; });
     expected = [];
     await agents.run(id, 'evidence', 'Review remaining evidence');
+  } finally { await agents.drain(); store.close(); }
+});
+
+
+test('reviewed dashboard updates trigger specialist follow-through when Commander omits delegation', async () => {
+  const s = await setup();
+  const config = s.domain.config;
+  const budget = new Budget(s.domain.store);
+  const server = createHttp(s.domain, s.agents, budget, new Research(config, budget, s.domain.store)).listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => server.on('listening', resolve));
+  try {
+    const i = s.domain.create({ team: 'TDEMO', channel: 'CDEMO', ts: '200.1', user: 'ULEAD', text: s.event.text });
+    const response = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/api/incidents/${i.snapshot.incidentId}/transcripts`, {
+      method: 'POST', headers: { Authorization: `Bearer ${config.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId: 'reviewed-followthrough-test', expectedVersion: i.snapshot.version, text: 'SYNTHETIC update: Loading Dock B remains the reported location. Area status remains unknown.', confirmed: true }),
+    });
+    assert.equal(response.status, 202);
+    await s.agents.enqueue(i.snapshot.incidentId, async () => {});
+    const current = s.domain.get(i.snapshot.incidentId);
+    assert.ok(s.runs.includes('evidence'));
+    assert.equal(current.snapshot.location, 'Loading Dock B');
+    assert.equal(current.snapshot.tasks.length, 3);
+    assert.equal(current.facts.length, 1);
+    assert.ok(current.evidenceReview?.sourceIds.includes(current.messages.at(-1)!.source.id));
+    assert.ok(current.snapshot.tasks.every(t => t.status === 'assigned'));
+  } finally {
+    server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); await s.close();
+  }
+});
+
+test('an agent gets one bounded correction when it tries to finish without reading evidence', async () => {
+  const store = await Store.open(':memory:');
+  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'read-reminder-test-token-123456789' }));
+  const id = domain.create({ team: 'T', channel: 'C', ts: 'read-1', user: 'U', text: 'Synthetic report at Dock B' }).snapshot.incidentId;
+  let count = 0;
+  const model: Model = { async complete(messages) {
+    count++;
+    if (count === 1) return { content: 'I will check that.' };
+    if (count === 2) { assert.match(messages.at(-1)!.content!, /Call read_incident now/); return call('read_incident'); }
+    return { content: 'Dock B was reported; no physical completion confirmed.' };
+  } };
+  const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()), model);
+  try {
+    await agents.run(id, 'commander', 'Review');
+    assert.equal(count, 3);
+    assert.equal(domain.get(id).snapshot.agents[0].status, 'done');
+    assert.ok(domain.get(id).snapshot.agents[0].sources.some(s => s.id === 'read-1'));
   } finally { await agents.drain(); store.close(); }
 });

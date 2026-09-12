@@ -160,6 +160,7 @@ export class Agents {
     const failures = new Set<string>();
     let waitingForHuman = false;
     let completionReminder = false;
+    let evidenceReadReminder = false;
     const attemptedNotifications = new Set<string>();
     const runSources: SourceRef[] = [];
     try {
@@ -168,7 +169,12 @@ export class Agents {
         const response = await this.model.complete(messages, tools);
         messages.push({ role: 'assistant', content: response.content, ...(response.tool_calls ? { tool_calls: response.tool_calls } : {}) });
         if (!response.tool_calls?.length) {
-          if (!readIncident) throw new Error('Agent did not inspect incident evidence');
+          if (!readIncident) {
+            if (evidenceReadReminder) throw new Error('Agent did not inspect incident evidence');
+            evidenceReadReminder = true;
+            messages.push({ role: 'system', content: 'You have not read the incident. Call read_incident now, then retry any failed tools using that evidence. Do not give a final answer until the required work is done.' });
+            continue;
+          }
           if (before !== this.domain.get(id).snapshot.version) throw new Error('Incident changed during final reasoning; rerun with current evidence');
           if ((cycle || requireReport) && !failures.size) {
             const current = this.domain.get(id);
@@ -296,6 +302,9 @@ export class Agents {
       }).refine(a => a.observations.length > 0 || a.noObservationsReason !== null, 'Explain why no observations can be recorded')
         .refine(a => a.location !== null || a.noLocationReason !== null, 'Supply the reported location, or explain its absence/ambiguity. Lack of independent confirmation does not make a reported location unknown.').parse(input);
       const i = this.domain.get(id);
+      if (!args.location && /no confirmed|only reported|unconfirmed|not (?:independently )?confirmed|lack.{0,30}confirmation/i.test(args.noLocationReason ?? '')) {
+        throw new DomainError(400, 'Independent confirmation is not required for a reported location. Copy the named location from its active source. Use null only for an absent or conflicting location.');
+      }
       const ids = [...new Set([...args.observations.flatMap(o => o.sources), ...(args.location ? [args.location.sourceId] : [])])];
       const refs = this.domain.source(i, ids);
       if (args.location && !i.messages.some(m => !m.deleted && m.source.id === args.location!.sourceId && m.text.includes(args.location!.text))) throw new DomainError(400, 'Reported location must be copied exactly from the cited active message');

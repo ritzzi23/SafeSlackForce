@@ -50,6 +50,7 @@ import OfficeDirectory from "./OfficeDirectory";
 import { IncidentJourney, NotificationInbox, useJourneyEvidence } from "./IncidentJourney";
 import IncidentShare from "./IncidentShare";
 import ResponseBoard from "./ResponseBoard";
+import WaitingOffice from "./WaitingOffice";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 const IncidentCopilot = lazy(() => import("./IncidentCopilot"));
@@ -497,6 +498,14 @@ export default function App() {
     a.download = DEMO_REPORT_FILENAME;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  if (paired && backendMode === "live" && incidents.length === 0) {
+    return <WaitingOffice reduced={reduced} onIncident={(next, list) => {
+      setIncidents(list); setSnapshot(next); setLive(true); setPlaying(false);
+      setChats([]); setInput(""); setSelected("commander"); setModal(null);
+      const url = new URL(window.location.href); url.searchParams.set("incidentId", next.incidentId);
+      window.history.replaceState(null, "", url);
+    }} />;
   }
   const agentChats = chats.filter((c) => c.agent === selected);
   return (

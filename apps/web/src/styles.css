@@ -2299,3 +2299,30 @@ h1 {
 .response-action summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none}.response-action summary span{font-weight:650}.response-action small{display:block;font-size:10px;line-height:1.45;color:#75826c;font-weight:500;margin-top:4px;overflow-wrap:anywhere}.response-action p{font-size:11px;line-height:1.5;margin:10px 0 5px}.response-action.simulated{background:#fff7e8;border-color:#eeddbb}.response-action.simulated small,.response-action.blocked small,.response-action.uncertain small{color:#9b6a27}.response-action.blocked,.response-action.uncertain{border-color:#e4c5bb;background:#fff5ee}
 .incident-share{text-align:center}.incident-share>p{font-size:13px;line-height:1.6}.incident-qr{display:block;margin:16px auto;background:white;border-radius:14px;border:1px solid #e2e5dc}.incident-share label{display:block;text-align:left;margin-top:16px;font-size:11px;font-weight:600}.incident-share input{width:100%;box-sizing:border-box;font-size:11px;padding:10px;border:1px solid #dce1d4;border-radius:8px;margin-top:7px;background:#fafbf7}.incident-share .primary-button{display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}.share-actions{display:flex;gap:18px;justify-content:center;margin:14px 0}.share-actions button,.share-actions a{display:flex;align-items:center;gap:6px;font:inherit;font-size:12px;color:#486640;border:0;background:transparent;text-decoration:none;cursor:pointer}.incident-share .field-hint{font-size:11px}
 @media(max-width:700px){.response-board{margin:0 10px 10px}.response-action-grid{gap:4px}.response-action{padding:9px 6px}.response-action summary{gap:5px;font-size:10px}.join-incident-banner{margin:0 10px 8px}.join-incident-banner span{font-size:10px}.response-board-heading span{font-size:9px}}
+
+/* A paired live workspace with no incidents stays empty, never a scripted demo. */
+.waiting-workspace { min-height: 100vh; background: #f6f5ef; color: #30372c; font-family: 'Manrope', sans-serif; }
+.waiting-header { height: 78px; padding: 0 36px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dedfd5; background: #fffef9; }
+.waiting-header a { font-size: 24px; font-weight: 800; color: inherit; text-decoration: none; }
+.waiting-header > span, .waiting-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: #64745a; }
+.waiting-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: calc(100vh - 78px); }
+.waiting-office { position: relative; display: flex; flex-direction: column; min-width: 0; }
+.waiting-heading { padding: 34px 40px 0; z-index: 1; }
+.waiting-heading > p { font-size: 10px; font-weight: 800; letter-spacing: .15em; color: #839079; }
+.waiting-heading h1 { font-size: clamp(28px, 3vw, 44px); margin: 12px 0; letter-spacing: -.04em; }
+.waiting-heading > span { color: #747b6d; font-size: 13px; }
+.waiting-scene { flex: 1; min-height: 430px; position: relative; }
+.waiting-connection { margin: 0; padding: 18px 40px; font-size: 12px; color: #64745a; }
+.waiting-panel { border-left: 1px solid #dedfd5; padding: 52px 28px; background: #fffef9; }
+.waiting-panel h2 { margin: 22px 0 16px; font-size: 28px; line-height: 1.25; letter-spacing: -.04em; }
+.waiting-panel > p { font-size: 14px; line-height: 1.85; color: #788071; }
+.waiting-counts { display: flex; gap: 30px; padding: 28px 0; margin: 22px 0; border-block: 1px solid #e6e7de; }
+.waiting-counts span { display: flex; flex-direction: column; gap: 8px; color: #89917f; font-size: 11px; }
+.waiting-counts strong { color: #45513e; font-size: 30px; }
+.waiting-agent { display: flex; align-items: center; gap: 12px; margin-top: 34px; }
+.waiting-agent > span { padding: 13px; border-radius: 14px; background: #e9eddf; color: #64745a; font-size: 12px; font-weight: 800; }
+.waiting-agent h3 { font-size: 14px; margin: 0 0 5px; }
+.waiting-agent p { font-size: 10px; margin: 0; color: #89917f; }
+.waiting-agent small { margin-left: auto; color: #64745a; font-size: 10px; }
+.waiting-panel .waiting-hint { margin-top: 32px; font-size: 11px; }
+@media (max-width: 800px) { .waiting-layout { grid-template-columns: 1fr; } .waiting-panel { border-left: 0; border-top: 1px solid #dedfd5; padding: 28px; } .waiting-heading { padding: 24px 24px 0; } .waiting-header { padding-inline: 24px; } .waiting-header a { font-size: 19px; } }
