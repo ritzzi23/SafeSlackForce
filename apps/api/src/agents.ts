@@ -24,7 +24,7 @@ Task status is authoritative: a message saying "I am the lead" is not an acknowl
 Explicitly unconfirmed information is an unknown to record, not a reason to ask the same question again immediately.
 Records will prepare a draft automatically after this cycle; do not delegate Records prematurely. Questions are collected until digital work finishes.`;
 const fields = {
-  text: { type: 'string' }, sources: { type: 'array', items: { type: 'string' } },
+  text: { type: 'string', minLength: 1, maxLength: 2000 }, sources: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string' }, description: 'Exact source.id strings from tool results, not objects, timestamps converted to numbers, or invented IDs.' },
 };
 const specs: Record<string, { description: string; properties: object; required: string[] }> = {
   read_incident: { description: 'Read current messages, tasks, facts and notifications.', properties: {}, required: [] },
@@ -32,14 +32,14 @@ const specs: Record<string, { description: string; properties: object; required:
   read_procedure: { description: 'Read the configured procedure and authorized contact roster.', properties: {}, required: [] },
   read_history: { description: 'Read a page of the persisted timeline. Follow nextOffset until null before saving a report.', properties: { offset: { type: 'integer', minimum: 0 } }, required: ['offset'] },
   inspect_image: { description: 'Describe an already ingested Slack image. Output is an unverified observation, not a safety determination. Results are cached.', properties: { fileId: fields.text }, required: ['fileId'] },
-  update_location: { description: 'Set reported location using a source message.', properties: { location: fields.text, sources: fields.sources }, required: ['location', 'sources'] },
+  update_location: { description: 'Set reported location using a source message.', properties: { location: { ...fields.text, maxLength: 200 }, sources: fields.sources }, required: ['location', 'sources'] },
   record_fact: { description: 'Persist a reported observation with source references. Cannot confirm a fact.', properties: { text: fields.text, sources: fields.sources }, required: ['text', 'sources'] },
   delegate: { description: 'Execute a specialist with a concrete task and wait for its result.', properties: { agent: { type: 'string', enum: ['procedure', 'evidence', 'communications', 'records'] }, task: fields.text }, required: ['agent', 'task'] },
   apply_procedure: { description: 'Create idempotent, human-owned tasks from the previously read fixture procedure.', properties: {}, required: [] },
   flag_contradiction: { description: 'Mark the affected task as requiring review, citing at least two conflicting sources.', properties: { taskId: fields.text, reason: fields.text, sources: fields.sources }, required: ['taskId', 'reason', 'sources'] },
   notify: { description: 'Queue and dispatch a notification to a configured contact for an existing task.', properties: { taskId: fields.text, recipient: fields.text, text: fields.text }, required: ['taskId', 'recipient', 'text'] },
   ask_human: { description: 'Ask a concise unresolved question in the incident Slack thread.', properties: { text: fields.text }, required: ['text'] },
-  save_report: { description: 'Persist a Markdown report with verified source references and all current tasks.', properties: { summary: fields.text, sources: fields.sources }, required: ['summary', 'sources'] },
+  save_report: { description: 'Persist a Markdown report with verified source references and all current tasks.', properties: { summary: { ...fields.text, maxLength: 4000 }, sources: fields.sources }, required: ['summary', 'sources'] },
 };
 const allowed: Record<AgentId, string[]> = {
   commander: ['read_incident', 'read_procedure', 'read_office', 'update_location', 'record_fact', 'delegate', 'ask_human'],
@@ -203,10 +203,21 @@ export class Agents {
             expected = this.domain.get(id).snapshot.version;
           } catch (e) {
             failures.add(call.function.name);
-            result = { error: e instanceof DomainError ? e.message : 'Tool execution failed', status: e instanceof DomainError ? e.status : 500 };
-            this.domain.mutate(id, `${agent} tool ${call.function.name} failed; no success assumed`, () => []);
+            const error = e instanceof DomainError ? e.message : e instanceof z.ZodError ? `Invalid tool arguments: ${e.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; ')}` : 'Tool execution failed';
+            result = { error, status: e instanceof DomainError ? e.status : e instanceof z.ZodError ? 400 : 500 };
+            this.domain.mutate(id, `${agent} tool ${call.function.name} failed; no success assumed. ${error}`, () => []);
+            // Account only for our own failure event. A concurrent change still requires a fresh read.
+            expected++;
           }
           messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result).slice(0, 50000) });
+        }
+        if (requireReport && reportSaved && !failures.size) {
+          const current = this.domain.get(id);
+          const report = current.snapshot.reports.at(-1)!;
+          const open = current.snapshot.tasks.filter(t => !['completed', 'cancelled'].includes(t.status)).length;
+          const answer = `${report.title} saved (${report.id}). ${open} tasks remain open. The draft records reported information; human handoff acceptance and physical confirmations remain separate.`;
+          this.domain.agent(id, agent, 'done', answer, runSources);
+          return answer;
         }
       }
       throw new Error('Agent reached its configured round limit');

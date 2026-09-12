@@ -42,7 +42,7 @@ import {
   type StreamUpdate,
 } from "@incidentos/contracts";
 import { departments, demoAnswer, demoSnapshot, stages } from "./data";
-import { api, ApiError, safeUrl } from "./api";
+import { api, ApiError, linkedIncidentId, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
 import ActionReadiness from "./ActionReadiness";
 import OfficeDirectory from "./OfficeDirectory";
@@ -157,7 +157,7 @@ export default function App() {
         setPaired(true);
         setIncidents(list);
         if (list.length) {
-          const next = await api.snapshot(list[0].incidentId);
+          const next = await api.snapshot(linkedIncidentId(list, window.location.search)!);
           if (cancelled) return;
           setSnapshot(next); setLive(true); setPlaying(false);
         } else setModal("connect");
@@ -412,7 +412,7 @@ export default function App() {
       if (!list.length) {
         return;
       }
-      const next = await api.snapshot(list[0].incidentId);
+      const next = await api.snapshot(linkedIncidentId(list, window.location.search)!);
       setPlaying(false);
       setSnapshot(next);
       setChats([]);
@@ -438,7 +438,7 @@ export default function App() {
       setPaired(true);
       setIncidents(list);
       if (list.length) {
-        setSnapshot(await api.snapshot(list[0].incidentId));
+        setSnapshot(await api.snapshot(linkedIncidentId(list, window.location.search)!));
         setLive(true);
         setPlaying(false);
         setChats([]);
@@ -464,6 +464,9 @@ export default function App() {
     if (pending) return;
     try {
       setSnapshot(await api.snapshot(id));
+      const url = new URL(window.location.href);
+      url.searchParams.set("incidentId", id);
+      window.history.replaceState(null, "", url);
       setChats([]);
       setSelected("commander");
     } catch (e) {

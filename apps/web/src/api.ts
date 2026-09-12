@@ -17,6 +17,10 @@ export class ApiError extends Error {
     super(message);
   }
 }
+export function linkedIncidentId(list: { incidentId: string }[], search: string) {
+  const requested = new URLSearchParams(search).get("incidentId");
+  return list.find(i => i.incidentId === requested)?.incidentId ?? list[0]?.incidentId;
+}
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, {
     ...init,

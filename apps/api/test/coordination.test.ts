@@ -51,6 +51,7 @@ async function setup(options: { stubborn?: boolean; question?: boolean; failEvid
       if (task) return call('notify', { taskId: task.id, recipient: 'ULEAD', text: `Please accept ownership: ${task.title}` });
     }
     if (role === 'records') {
+      if (did('save_report')) throw new Error('No additional inference is needed after the report save receipt');
       if (options.reportPromise && !messages.some(m => m.role === 'system' && m.content?.startsWith('No report has been saved'))) return { content: 'The report is saved and ready.' };
       const pages = messages.filter(m => m.role === 'tool').map(m => JSON.parse(m.content!)).filter(v => 'nextOffset' in v);
       if (!pages.length || pages.at(-1).nextOffset !== null) return call('read_history', { offset: pages.at(-1)?.nextOffset ?? 0 });
@@ -88,6 +89,57 @@ test('one report triggers missing specialists, real tools and a sourced draft be
     assert.equal(i.snapshot.agents[0].status, 'waiting');
     assert.match(i.snapshot.agents[0].summary, /3 still await recorded ownership acceptance/);
   } finally { await s.close(); }
+});
+
+test('tool validation errors explain the invalid field and do not invalidate the rest of a batch', async () => {
+  const store = await Store.open(':memory:');
+  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'validation-test-token-123456789' }));
+  const id = domain.create({ team: 'T', channel: 'C', ts: 'source-1', user: 'U', text: 'Synthetic reported location' }).snapshot.incidentId;
+  let turn = 0;
+  const model: Model = { async complete(messages) {
+    if (turn++ === 0) return call('read_incident');
+    if (turn === 2) return { content: null, tool_calls: [
+      ...call('record_fact', { text: 'Reported location', sources: [{ id: 'source-1' }] }).tool_calls!,
+      ...call('record_fact', { text: 'Reported location', sources: ['source-1'] }).tool_calls!,
+    ] };
+    const results = messages.filter(m => m.role === 'tool').slice(-2).map(m => JSON.parse(m.content!));
+    assert.equal(results[0].status, 400);
+    assert.match(results[0].error, /Invalid tool arguments: sources.0/);
+    assert.equal(results[1][0].state, 'reported');
+    return { content: 'Recorded the reported observation.' };
+  } };
+  const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()), model);
+  try {
+    await agents.run(id, 'evidence', 'Record the observation');
+    assert.equal(domain.get(id).facts.length, 1);
+    assert.equal(domain.get(id).snapshot.agents.find(a => a.id === 'evidence')!.status, 'done');
+  } finally { await agents.drain(); store.close(); }
+});
+
+test('failure logging does not let later batch mutations bypass a concurrent incident change', async () => {
+  const store = await Store.open(':memory:');
+  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'concurrent-test-token-123456789' }));
+  const id = domain.create({ team: 'T', channel: 'C', ts: 'source-1', user: 'U', text: 'Synthetic observation' }).snapshot.incidentId;
+  let turn = 0;
+  const model: Model = { async complete(messages) {
+    if (turn++ === 0) return call('read_incident');
+    if (turn === 2) {
+      domain.addMessage(id, { ts: 'source-2', text: 'New observation during inference', user: 'U' });
+      return { content: null, tool_calls: [
+        ...call('record_fact', { text: 'Stale observation A', sources: ['source-1'] }).tool_calls!,
+        ...call('record_fact', { text: 'Stale observation B', sources: ['source-1'] }).tool_calls!,
+      ] };
+    }
+    const results = messages.filter(m => m.role === 'tool').slice(-2).map(m => JSON.parse(m.content!));
+    assert.ok(results.every(r => r.status === 409));
+    return { content: 'Unable to record stale observations.' };
+  } };
+  const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()), model);
+  try {
+    await agents.run(id, 'evidence', 'Record observations');
+    assert.equal(domain.get(id).facts.length, 0);
+    assert.equal(domain.get(id).snapshot.agents.find(a => a.id === 'evidence')!.status, 'failed');
+  } finally { await agents.drain(); store.close(); }
 });
 
 test('Records is corrected when it claims a report is saved without calling save_report', async () => {
