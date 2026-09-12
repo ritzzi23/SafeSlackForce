@@ -1,0 +1,21 @@
+{
+  "name": "safeslackforce",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/api", "packages/contracts"],
+  "scripts": {
+    "dev:api": "tsx watch apps/api/src/index.ts",
+    "start:api": "tsx apps/api/src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test apps/api/test/*.test.ts",
+    "fixtures": "tsx apps/api/scripts/fixtures.ts"
+  },
+  "engines": { "node": ">=18.20" },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "@types/sql.js": "^1.4.9",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}
