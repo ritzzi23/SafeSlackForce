@@ -16,6 +16,8 @@ export type Incident = {
   snapshot: IncidentSnapshot; team: string; channel: string; rootTs: string;
   messages: Message[]; facts: Fact[]; notifications: Notification[];
   criticalTaskIds: string[]; acceptedBy?: string; attachments?: Attachment[]; locationSourceIds?: string[]; demoArchived?: boolean;
+  evidenceReview?: { sourceIds: string[]; noObservationsReason: string | null; noLocationReason?: string | null };
+  coordinationFailures?: AgentId[]; coordinationQuestions?: boolean; coordinationStateKey?: string;
 };
 export const procedure = {
   id: 'warehouse-coordination-v1', version: 1, label: 'Synthetic warehouse coordination procedure',
@@ -63,6 +65,22 @@ export class Incidents {
   }
   slackUrl(team: string, channel: string, ts: string) { return this.config.mode === 'fixture' ? '' : `https://app.slack.com/archives/${encodeURIComponent(channel)}/p${ts.replace('.', '')}`; }
   commit(i: Incident, text: string, sources: SourceRef[] = [], handoff?: StreamUpdate['handoff']) {
+    const commander = i.snapshot.agents.find(a => a.id === 'commander')!;
+    const coordinationStateKey = JSON.stringify([i.snapshot.location, i.snapshot.tasks.map(t => [t.id, t.status, t.version]), i.notifications.map(n => [n.state, n.acknowledgedBy]), i.coordinationFailures, i.coordinationQuestions]);
+    if (i.coordinationFailures && commander.status !== 'working' && coordinationStateKey !== i.coordinationStateKey) {
+      i.coordinationStateKey = coordinationStateKey;
+      const open = i.snapshot.tasks.filter(t => !['completed', 'cancelled'].includes(t.status));
+      const unacknowledged = open.filter(t => ['proposed', 'assigned'].includes(t.status));
+      commander.summary = `Reported location: ${i.snapshot.location}. ${open.length} tasks remain open; ${unacknowledged.length} still await recorded ownership acceptance. ${i.notifications.filter(n => n.state === 'sent').length} notifications have delivery receipts; delivery is not acknowledgement.${i.coordinationFailures.length ? ` Needs attention: ${i.coordinationFailures.join(', ')} failed.` : ''} ${open.length ? 'Digital coordination has run; human confirmations remain outstanding.' : 'Review the incident record for remaining decisions.'}`;
+      commander.status = i.coordinationFailures.length ? 'failed' : open.length || i.coordinationQuestions ? 'waiting' : 'done';
+      commander.waitingOn = commander.status === 'waiting' ? commander.summary : null;
+      commander.sources = [...new Map([...commander.sources, ...i.snapshot.tasks.flatMap(t => t.sources), ...sources].map(s => [s.id, s])).values()].slice(-10);
+      const communications = i.snapshot.agents.find(a => a.id === 'communications')!;
+      if (communications.status === 'waiting' && i.notifications.length && i.notifications.every(n => n.acknowledgedBy)) {
+        communications.status = 'done'; communications.waitingOn = null;
+        communications.summary = 'All notified tasks have recorded acknowledgement. Physical completion remains separate.';
+      }
+    }
     let event!: StreamUpdate;
     this.store.transaction(() => {
       i.snapshot.version++; i.snapshot.slackConnection = this.connection;

@@ -15,7 +15,7 @@ import type { Completion, Model } from '../src/model.js';
 
 const call = (name: string, args = {}): Completion => ({ content: null, tool_calls: [{ id: randomUUID(), type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
 
-async function setup(options: { stubborn?: boolean; question?: boolean; failEvidence?: boolean; delegateProcedure?: boolean; reportPromise?: boolean } = {}) {
+async function setup(options: { stubborn?: boolean; question?: boolean; failEvidence?: boolean; delegateProcedure?: boolean; reportPromise?: boolean; omitExtraction?: boolean } = {}) {
   const store = await Store.open(':memory:'), office = await Store.open(':memory:'), restricted = await Store.open(':memory:');
   seedOffice(office, restricted);
   const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'coordination-test-token-12345678', MODEL_MAX_ROUNDS: '10' }), new OfficeDirectory(office));
@@ -27,7 +27,8 @@ async function setup(options: { stubborn?: boolean; question?: boolean; failEvid
     const did = (name: string) => calls.some(c => c.function.name === name);
     if (!did('read_incident')) { runs.push(role); return call('read_incident'); }
     if (role === 'commander') {
-      if (!did('update_location')) return call('update_location', { location: 'Loading Dock B', sources: ['200.1'] });
+      if (!options.omitExtraction && !did('update_location')) return call('update_location', { location: 'Loading Dock B', sources: ['200.1'] });
+      if (!did('read_office') && messages.some(m => m.role === 'system' && m.content?.startsWith('Search the synthetic office'))) return call('read_office', { category: 'policies', query: 'privacy' });
       if (options.delegateProcedure && !did('delegate')) return call('delegate', { agent: 'procedure', task: 'Match the procedure and create its tasks.' });
       if (options.question && !did('ask_human')) return call('ask_human', { text: 'Who can provide the next verified observation?' });
       // Deliberately omits Evidence and Communications, reproducing the real failure.
@@ -40,7 +41,7 @@ async function setup(options: { stubborn?: boolean; question?: boolean; failEvid
     }
     if (role === 'evidence') {
       if (options.failEvidence) throw new Error('Synthetic evidence provider failure');
-      if (!did('record_fact')) return call('record_fact', { text: 'Injury reported; area and emergency-service contact unconfirmed.', sources: ['200.1'] });
+      if (!did('save_evidence_review') && (!options.omitExtraction || messages.some(m => m.role === 'system' && m.content?.startsWith('Call save_evidence_review')))) return call('save_evidence_review', { location: { text: 'Loading Dock B', sourceId: '200.1' }, observations: [{ text: 'Injury reported; area and emergency-service contact unconfirmed.', sources: ['200.1'] }], noObservationsReason: null, noLocationReason: null });
     }
     if (role === 'communications') {
       // First tries to finish without sending; the completion check must correct this.
@@ -154,6 +155,64 @@ test('Records is corrected when it claims a report is saved without calling save
     assert.ok(i.snapshot.activity.some(a => a.text.includes('records tool save_report succeeded')));
     assert.ok(i.snapshot.tasks.every(t => t.status === 'assigned'));
   } finally { await s.close(); }
+});
+
+test('a narrative-only review is corrected into saved evidence, a location and an office lookup', async () => {
+  const s = await setup({ omitExtraction: true });
+  try {
+    const id = s.intake.receive(s.event, 'TDEMO', 'Ev-extraction')!;
+    await s.agents.enqueue(id, async () => {});
+    const i = s.domain.get(id);
+    assert.equal(i.snapshot.location, 'Loading Dock B');
+    assert.deepEqual(i.locationSourceIds, ['200.1']);
+    assert.equal(i.facts.length, 1);
+    assert.ok(i.facts.every(f => f.state === 'reported'));
+    assert.deepEqual(i.evidenceReview?.sourceIds, ['200.1']);
+    assert.ok(i.snapshot.agents[0].sources.some(r => r.id === 'office:policy-privacy'));
+    assert.equal(i.snapshot.agents[0].status, 'waiting');
+    s.domain.acceptAssigned(id, 'ULEAD', i.snapshot.version);
+    const accepted = s.domain.get(id);
+    assert.match(accepted.snapshot.agents[0].summary, /0 still await recorded ownership acceptance/);
+    assert.equal(accepted.snapshot.agents.find(a => a.id === 'communications')!.status, 'done');
+    assert.ok(accepted.snapshot.tasks.every(t => t.status === 'acknowledged'));
+    assert.equal(accepted.acceptedBy, undefined);
+    assert.equal(s.channel.sent.length, 3, 'acknowledgement status refresh needs no send or inference');
+  } finally { await s.close(); }
+});
+
+test('evidence review rejects fabricated locations and removed sources, and permits an explained empty review', async () => {
+  const store = await Store.open(':memory:');
+  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'extraction-test-token-123456789' }));
+  const id = domain.create({ team: 'T', channel: 'C', ts: 'source-1', user: 'U', text: 'Loading Dock B reported' }).snapshot.incidentId;
+  let input: object = {}, expectedError = '';
+  const model: Model = { async complete(messages) {
+    const results = messages.filter(m => m.role === 'tool');
+    if (!results.length) return call('read_incident');
+    if (results.length === 1) return call('save_evidence_review', input);
+    const result = JSON.parse(results.at(-1)!.content!);
+    if (expectedError) assert.ok(result.error.includes(expectedError), result.error);
+    else assert.equal(result.saved, true);
+    return { content: 'Review attempted.' };
+  } };
+  const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()), model);
+  try {
+    input = { location: { text: 'Loading Dock Z', sourceId: 'source-1' }, observations: [{ text: 'Reported location', sources: ['source-1'] }], noObservationsReason: null, noLocationReason: null };
+    expectedError = 'copied exactly';
+    await agents.run(id, 'evidence', 'Review');
+    assert.equal(domain.get(id).facts.length, 0, 'validation must be atomic');
+    assert.equal(domain.get(id).snapshot.location, 'Not yet confirmed');
+    domain.addMessage(id, { ts: 'source-1', user: 'U', text: '', deleted: true });
+    input = { location: null, observations: [{ text: 'Stale observation', sources: ['source-1'] }], noObservationsReason: null, noLocationReason: 'No active location source remains.' };
+    expectedError = 'Unknown or removed source';
+    await agents.run(id, 'evidence', 'Review');
+    assert.equal(domain.get(id).facts.length, 0);
+    input = { location: null, observations: [], noObservationsReason: 'The only participant message was removed.', noLocationReason: 'The location source was removed.' };
+    expectedError = '';
+    await agents.run(id, 'evidence', 'Review remaining sources');
+    assert.equal(domain.get(id).snapshot.location, 'Not yet confirmed');
+    assert.deepEqual(domain.get(id).evidenceReview?.sourceIds, []);
+    assert.equal(domain.get(id).snapshot.agents.find(a => a.id === 'evidence')!.status, 'done');
+  } finally { await agents.drain(); store.close(); }
 });
 
 test('a specialist that only promises delivery is failed rather than reported successful', async () => {

@@ -10,7 +10,7 @@ import { officeCategory } from './office.js';
 const roles: Record<AgentId, string> = {
   commander: 'Coordinate reported facts and delegate bounded work to procedure, evidence, communications and records. Execute authorized lookups, procedure matching, task creation and notifications without asking a person to approve each digital step. Ask a human only for missing material facts or genuine ambiguity, not permission to proceed with allowed tools. Records preparation is also triggered automatically after work settles. Do not run a specialist twice for the same purpose. All statements must distinguish reported, unknown and confirmed information.',
   procedure: 'Read the approved synthetic procedure and roster before applying it. Only apply it when the report matches its forklift/loading-dock scope. Otherwise ask the human for an applicable procedure. Review relevant task confirmations.',
-  evidence: 'Compare current, non-deleted source messages. Link observations to facts. Flag contradictions only when scope, location and time actually overlap; cite both sources. Inspect images only when read_incident lists actual attachments; never invent a file ID or assume a photo exists. A text-only report is not a missing-image failure. Never interpret a photo as proof of site safety.',
+  evidence: 'Compare current, non-deleted source messages. Use save_evidence_review to persist the reported location and sourced observations, including explicitly unknown information, before finishing. Copy any reported location exactly from its source; use null when absent or conflicting. An empty observation list requires an explanation. Flag contradictions only when scope, location and time actually overlap; cite both sources. Inspect images only when read_incident lists actual attachments; never invent a file ID or assume a photo exists. A text-only report is not a missing-image failure. Never interpret a photo as proof of site safety.',
   communications: 'Read the roster and current tasks. Send concise notifications about open tasks to configured recipients. Sent messages and human acknowledgement are distinct. Do not repeat already queued messages.',
   records: 'Read the entire current incident before generating a sourced handoff. Record open tasks honestly. Use save_report to persist the report; never claim it is saved without a tool result. A recorded location is reported, not independently confirmed. Historical agent errors are historical attempts, not new incident facts. Prioritize the latest non-deleted participant evidence and current task states over older agent summaries.',
 };
@@ -28,12 +28,18 @@ const fields = {
 };
 const specs: Record<string, { description: string; properties: object; required: string[] }> = {
   read_incident: { description: 'Read current messages, tasks, facts and notifications.', properties: {}, required: [] },
-  read_office: { description: 'Search synthetic office contacts, policies, protocols, management, plan catalog or historical demo call logs. Never actual call evidence or medical/individual enrollment access. Directory contacts do not authorize notification recipients. Cite record source IDs and label results synthetic.', properties: { category: { type: 'string', enum: officeCategory.options }, query: fields.text }, required: ['category', 'query'] },
+  read_office: { description: 'Search synthetic office contacts, policies, protocols, management, plan catalog or historical demo call logs. All query words must match; use one or two keywords, or an empty query to browse the category. Never actual call evidence or medical/individual enrollment access. Directory contacts do not authorize notification recipients. Cite record source IDs and label results synthetic.', properties: { category: { type: 'string', enum: officeCategory.options }, query: { type: 'string', maxLength: 120 } }, required: ['category', 'query'] },
   read_procedure: { description: 'Read the configured procedure and authorized contact roster.', properties: {}, required: [] },
   read_history: { description: 'Read a page of the persisted timeline. Follow nextOffset until null before saving a report.', properties: { offset: { type: 'integer', minimum: 0 } }, required: ['offset'] },
   inspect_image: { description: 'Describe an already ingested Slack image. Output is an unverified observation, not a safety determination. Results are cached.', properties: { fileId: fields.text }, required: ['fileId'] },
   update_location: { description: 'Set reported location using a source message.', properties: { location: { ...fields.text, maxLength: 200 }, sources: fields.sources }, required: ['location', 'sources'] },
   record_fact: { description: 'Persist a reported observation with source references. Cannot confirm a fact.', properties: { text: fields.text, sources: fields.sources }, required: ['text', 'sources'] },
+  save_evidence_review: { description: 'Save the evidence review, not just a narrative answer. Reported location must be an exact excerpt of an active source message. Null means no unambiguous location update. Observations remain reported, never confirmed. Empty observations require a reason.', properties: {
+    location: { anyOf: [{ type: 'null' }, { type: 'object', properties: { text: { ...fields.text, maxLength: 200 }, sourceId: { type: 'string' } }, required: ['text', 'sourceId'], additionalProperties: false }] },
+    observations: { type: 'array', maxItems: 10, items: { type: 'object', properties: { text: fields.text, sources: fields.sources }, required: ['text', 'sources'], additionalProperties: false } },
+    noObservationsReason: { type: ['string', 'null'], maxLength: 1000 },
+    noLocationReason: { type: ['string', 'null'], maxLength: 1000, description: 'Required explanation when location is null. Lack of independent confirmation is NOT a reason to omit a reported location. Use null when a location is supplied.' },
+  }, required: ['location', 'observations', 'noObservationsReason', 'noLocationReason'] },
   delegate: { description: 'Execute a specialist with a concrete task and wait for its result.', properties: { agent: { type: 'string', enum: ['procedure', 'evidence', 'communications', 'records'] }, task: fields.text }, required: ['agent', 'task'] },
   apply_procedure: { description: 'Create idempotent, human-owned tasks from the previously read fixture procedure.', properties: {}, required: [] },
   flag_contradiction: { description: 'Mark the affected task as requiring review, citing at least two conflicting sources.', properties: { taskId: fields.text, reason: fields.text, sources: fields.sources }, required: ['taskId', 'reason', 'sources'] },
@@ -44,7 +50,7 @@ const specs: Record<string, { description: string; properties: object; required:
 const allowed: Record<AgentId, string[]> = {
   commander: ['read_incident', 'read_procedure', 'read_office', 'update_location', 'record_fact', 'delegate', 'ask_human'],
   procedure: ['read_incident', 'read_procedure', 'read_office', 'apply_procedure', 'flag_contradiction', 'ask_human'],
-  evidence: ['read_incident', 'record_fact', 'flag_contradiction', 'ask_human', 'inspect_image'],
+  evidence: ['read_incident', 'record_fact', 'save_evidence_review', 'flag_contradiction', 'ask_human', 'inspect_image'],
   communications: ['read_incident', 'read_procedure', 'read_office', 'notify'],
   records: ['read_incident', 'read_history', 'read_office', 'save_report'],
 };
@@ -68,7 +74,8 @@ export class Agents {
   async coordinate(id: string, instruction: string): Promise<string> {
     if (this.domain.config.mode === 'fixture' && !this.model) return this.run(id, 'commander', instruction);
     const cycle: CoordinationCycle = { attempted: new Set(), questions: [] };
-    await this.run(id, 'commander', instruction, 0, cycle);
+    try { await this.run(id, 'commander', instruction, 0, cycle); }
+    catch { /* Keep a failed Commander visible while independent specialists finish permitted work. */ }
     const followThrough = async (agent: AgentId, task: string) => {
       if (cycle.attempted.has(agent)) return;
       this.domain.delegate(id, agent, task);
@@ -93,13 +100,13 @@ export class Agents {
         throw new Error('Follow-up question delivery is uncertain');
       }
     }
-    const current = this.domain.get(id);
-    const failed = current.snapshot.agents.filter(a => cycle.attempted.has(a.id) && a.status === 'failed');
-    const open = current.snapshot.tasks.filter(t => !['completed', 'cancelled'].includes(t.status));
-    const unacknowledged = open.filter(t => ['proposed', 'assigned'].includes(t.status));
-    const summary = `Reported location: ${current.snapshot.location}. ${open.length} tasks remain open; ${unacknowledged.length} still await recorded ownership acceptance. ${current.notifications.filter(n => n.state === 'sent').length} notifications have delivery receipts; delivery is not acknowledgement.${failed.length ? ` Needs attention: ${failed.map(a => a.id).join(', ')} failed.` : ''} ${open.length ? 'Digital coordination has run; human confirmations remain outstanding.' : 'Review the incident record for remaining decisions.'}`;
-    this.domain.agent(id, 'commander', failed.length ? 'failed' : open.length || cycle.questions.length ? 'waiting' : 'done', summary);
-    return summary;
+    this.domain.mutate(id, 'Autonomous coordination cycle finished', i => {
+      i.coordinationFailures = i.snapshot.agents.filter(a => cycle.attempted.has(a.id) && a.status === 'failed').map(a => a.id);
+      i.coordinationQuestions = cycle.questions.length > 0;
+      delete i.coordinationStateKey;
+      i.snapshot.agents.find(a => a.id === 'commander')!.status = 'waiting';
+    });
+    return this.domain.get(id).snapshot.agents.find(a => a.id === 'commander')!.summary;
   }
   async prepareReport(id: string, task: string) {
     return this.run(id, 'records', task, 0, undefined, true);
@@ -122,6 +129,8 @@ export class Agents {
     let readProcedure = false;
     if (cycle) messages[0].content += `\n${workflowInstructions}`;
     let readIncident = false;
+    let readOffice = false;
+    let evidenceSaved = false;
     let historyOffset = 0;
     let historyComplete = false;
     let reportSaved = false;
@@ -145,6 +154,8 @@ export class Agents {
               [this.domain.config.lead, this.domain.config.backup, ...this.domain.config.supervisors].includes(t.owner.slackUserId) &&
               !attemptedNotifications.has(t.id) && !current.notifications.some(n => n.taskId === t.id && n.recipient === t.owner!.slackUserId)) : [];
             const missing = requireReport && !reportSaved ? 'No report has been saved in this run. Read every remaining history page, then call save_report with sourced content before giving a final answer. Writing report text alone does not save it.'
+              : agent === 'commander' && this.domain.office && !readOffice ? 'Search the synthetic office directory with read_office for relevant policies or protocols before finishing. A summary without a database lookup is incomplete. Label any results synthetic.'
+              : agent === 'evidence' && !evidenceSaved ? 'Call save_evidence_review now to persist the reported location and sourced observations. Copy the location exactly from an active message when present. Use null only when absent or ambiguous, and explain an empty observation list. A narrative review alone does not save evidence.'
               : agent === 'procedure' && !readProcedure ? 'Read the configured procedure before deciding whether it applies.'
               : agent === 'procedure' && this.domain.matchingProcedureSource(id) && procedure.tasks.some(t => !current.snapshot.tasks.some(task => task.id === t.key)) ? 'The configured procedure matches and its tasks are missing. Use apply_procedure to create the owned tasks now; do not stop at a plan.'
               : missingNotifications.length ? `Notify these assigned task owners using the notify tool: ${missingNotifications.map(t => t.id).join(', ')}. Delivery must have a tool result; do not stop at a promise.` : '';
@@ -180,7 +191,9 @@ export class Agents {
             if (call.function.name === 'read_history' && args.offset !== historyOffset) throw new DomainError(400, `Read history at offset ${historyOffset}`);
             result = await this.tool(id, agent, call.function.name, args, depth, cycle);
             if (call.function.name === 'save_report') reportSaved = true;
+            if (call.function.name === 'save_evidence_review') evidenceSaved = true;
             if (call.function.name === 'read_office') {
+              readOffice = true;
               for (const record of (result as { records: { source: SourceRef }[] }).records) if (!runSources.some(s => s.id === record.source.id)) runSources.push(record.source);
             }
             if (call.function.name === 'read_incident') {
@@ -236,7 +249,7 @@ export class Agents {
       return this.media.analyze(id, fileId);
     }
     if (name === 'read_incident') {
-      const i = this.domain.get(id); return { version: i.snapshot.version, status: i.snapshot.status, messages: i.messages.filter(m => !m.deleted).slice(-30), facts: i.facts, tasks: i.snapshot.tasks, notifications: i.notifications, attachments: (i.attachments ?? []).filter(a => !a.removed), sources: i.snapshot.activity.flatMap(a => a.sources).slice(-30) };
+      const i = this.domain.get(id); return { version: i.snapshot.version, status: i.snapshot.status, reportedLocation: i.snapshot.location, locationSourceIds: i.locationSourceIds ?? [], locationNote: 'Reported location is separate from confirmed area status. Save an explicitly named location even when area status is unknown.', messages: i.messages.filter(m => !m.deleted).slice(-30), facts: i.facts, tasks: i.snapshot.tasks, notifications: i.notifications, attachments: (i.attachments ?? []).filter(a => !a.removed), sources: i.snapshot.activity.flatMap(a => a.sources).slice(-30) };
     }
     if (name === 'read_history') {
       const { offset } = z.object({ offset: z.number().int().nonnegative() }).parse(input);
@@ -250,6 +263,28 @@ export class Agents {
       this.domain.delegate(id, args.agent, args.task); return this.run(id, args.agent, args.task, depth + 1, cycle);
     }
     if (name === 'apply_procedure') return this.domain.applyProcedure(id);
+    if (name === 'save_evidence_review') {
+      const args = z.object({
+        location: z.object({ text: z.string().trim().min(1).max(200), sourceId: z.string() }).nullable(),
+        observations: z.array(sourced.extend({ text: z.string().trim().min(1).max(2000) })).max(10),
+        noObservationsReason: z.string().trim().min(1).max(1000).nullable(),
+        noLocationReason: z.string().trim().min(1).max(1000).nullable(),
+      }).refine(a => a.observations.length > 0 || a.noObservationsReason !== null, 'Explain why no observations can be recorded')
+        .refine(a => a.location !== null || a.noLocationReason !== null, 'Supply the reported location, or explain its absence/ambiguity. Lack of independent confirmation does not make a reported location unknown.').parse(input);
+      const i = this.domain.get(id);
+      const ids = [...new Set([...args.observations.flatMap(o => o.sources), ...(args.location ? [args.location.sourceId] : [])])];
+      const refs = this.domain.source(i, ids);
+      if (args.location && !i.messages.some(m => !m.deleted && m.source.id === args.location!.sourceId && m.text.includes(args.location!.text))) throw new DomainError(400, 'Reported location must be copied exactly from the cited active message');
+      this.domain.mutate(id, 'Evidence review saved; observations remain reported', current => {
+        if (args.location) { current.snapshot.location = args.location.text; current.locationSourceIds = [args.location.sourceId]; }
+        for (const observation of args.observations) {
+          if (!current.facts.some(f => f.text === observation.text && JSON.stringify(f.sourceIds) === JSON.stringify(observation.sources))) current.facts.push({ id: randomUUID(), text: observation.text, sourceIds: observation.sources, state: 'reported' });
+        }
+        current.evidenceReview = { sourceIds: current.messages.filter(m => !m.deleted).map(m => m.source.id), noObservationsReason: args.noObservationsReason, noLocationReason: args.noLocationReason };
+        return refs;
+      });
+      return { saved: true, location: this.domain.get(id).snapshot.location, observations: args.observations.length, sources: refs };
+    }
     if (name === 'update_location') {
       const args = sourced.extend({ location: z.string().min(1).max(200) }).parse(input);
       return this.domain.mutate(id, `Reported location: ${args.location}`, i => { const refs = this.domain.source(i, args.sources); i.snapshot.location = args.location; i.locationSourceIds = args.sources; return refs; }).snapshot.location;
