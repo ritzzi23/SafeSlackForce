@@ -10,6 +10,7 @@ import { Notifications, FixtureChannel } from '../src/notifications.js';
 import { Store } from '../src/store.js';
 import { OfficeDirectory } from '../src/office.js';
 import { seedOffice } from '../src/seed-office.js';
+import { Media } from '../src/media.js';
 import type { Completion, Model } from '../src/model.js';
 
 const call = (name: string, args = {}): Completion => ({ content: null, tool_calls: [{ id: randomUUID(), type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
@@ -129,4 +130,30 @@ test('an update does not rerun a completed procedure or resend uncertain notific
     assert.equal(s.runs.filter(r => r === 'evidence').length, 2);
     assert.equal(s.domain.get(id).notifications[0].state, 'uncertain');
   } finally { await s.close(); }
+});
+
+test('Evidence receives only existing active image IDs, and no image tool for text-only or deleted sources', async () => {
+  const store = await Store.open(':memory:');
+  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'image-tool-test-token-123456789', VISION_ENABLED: 'true' }));
+  const id = domain.create({ team: 'T', channel: 'C', ts: 'source-1', user: 'U', text: 'Synthetic text-only forklift report' }).snapshot.incidentId;
+  let expected: string[] = [];
+  const model: Model = { async complete(messages, tools) {
+    const tool = tools.find(t => t.function.name === 'inspect_image');
+    if (!expected.length) assert.equal(tool, undefined);
+    else assert.deepEqual((tool!.function.parameters as { properties: { fileId: { enum: string[] } } }).properties.fileId.enum, expected);
+    return messages.some(m => m.role === 'tool') ? { content: 'Reviewed available evidence.' } : call('read_incident');
+  } };
+  const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()), model, new Media(domain));
+  try {
+    await agents.run(id, 'evidence', 'Review text evidence');
+    domain.mutate(id, 'Synthetic attachment metadata', i => { i.attachments = [
+      { id: 'F-ACTIVE', messageId: 'source-1', name: 'demo.png', mimetype: 'image/png', size: 8, source: { id: 'file:F-ACTIVE', kind: 'tool_result', label: 'Synthetic attachment' } },
+      { id: 'F-REMOVED', messageId: 'source-1', name: 'removed.png', mimetype: 'image/png', size: 8, removed: true, source: { id: 'file:F-REMOVED', kind: 'tool_result', label: 'Removed attachment' } },
+    ]; });
+    expected = ['F-ACTIVE'];
+    await agents.run(id, 'evidence', 'Review available image list');
+    domain.mutate(id, 'Delete the attachment source', i => { i.messages[0].deleted = true; });
+    expected = [];
+    await agents.run(id, 'evidence', 'Review remaining evidence');
+  } finally { await agents.drain(); store.close(); }
 });
