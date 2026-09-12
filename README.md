@@ -1,5 +1,7 @@
 # SafeSlackForce
 
+**Demo video (2 min):** https://youtu.be/xYKxVzRwwRE · **Presentation:** [docs/SafeSlackForce-Presentation.pdf](docs/SafeSlackForce-Presentation.pdf)
+
 An AI incident coordination team inside Slack, with a live 3D command center.
 
 After a workplace incident, someone has to turn scattered messages into owned tasks,
