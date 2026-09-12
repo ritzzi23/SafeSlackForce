@@ -8,7 +8,7 @@ import type { Media } from './media.js';
 import { officeCategory } from './office.js';
 
 const roles: Record<AgentId, string> = {
-  commander: 'Coordinate reported facts and delegate bounded work to procedure, evidence, communications and records. Do not run a specialist twice for the same purpose. All statements must distinguish reported, unknown and confirmed information.',
+  commander: 'Coordinate reported facts and delegate bounded work to procedure, evidence, communications and records. Execute authorized lookups, procedure matching, task creation and notifications without asking a person to approve each digital step. Ask a human only for missing material facts or genuine ambiguity, not permission to proceed with allowed tools. Records preparation is also triggered automatically after work settles. Do not run a specialist twice for the same purpose. All statements must distinguish reported, unknown and confirmed information.',
   procedure: 'Read the approved synthetic procedure and roster before applying it. Only apply it when the report matches its forklift/loading-dock scope. Otherwise ask the human for an applicable procedure. Review relevant task confirmations.',
   evidence: 'Compare current, non-deleted source messages. Link observations to facts. Flag contradictions only when scope, location and time actually overlap; cite both sources. Never interpret a photo as proof of site safety.',
   communications: 'Read the roster and current tasks. Send concise notifications about open tasks to configured recipients. Sent messages and human acknowledgement are distinct. Do not repeat already queued messages.',

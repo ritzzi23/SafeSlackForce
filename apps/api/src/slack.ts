@@ -48,6 +48,15 @@ export class SlackChannel implements Channel {
     });
     app.event('message', async ({ event, body }) => { try { intake.receive(event, body.team_id || '', body.event_id); } catch (e) { reportError(e); } });
 
+    app.action('incident_accept_assigned', async ({ ack, body, client }) => {
+      await ack(); const b = body as any;
+      if (b.team?.id !== this.config.team || b.channel?.id !== this.config.channel) return;
+      try {
+        const data = z.object({ incidentId: z.string(), version: z.number().int() }).parse(JSON.parse(b.actions[0].value));
+        if (domain.get(data.incidentId).channel !== b.channel.id) throw new DomainError(403, 'Wrong incident channel');
+        domain.acceptAssigned(data.incidentId, b.user.id, data.version);
+      } catch (e) { await client.chat.postEphemeral({ channel: b.channel.id, user: b.user.id, text: e instanceof DomainError ? e.message : 'Unable to accept assigned tasks' }); }
+    });
     app.action(/incident_(acknowledge|review|complete)/, async ({ ack, body, client }) => {
       await ack(); const b = body as any;
       if (b.team?.id !== this.config.team || b.channel?.id !== this.config.channel) return;

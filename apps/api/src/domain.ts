@@ -157,6 +157,26 @@ export class Incidents {
       return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted handoff` }];
     }, expected);
   }
+  acceptAssigned(id: string, actor: string, expected: number) {
+    return this.mutate(id, `${actor} accepted their assigned tasks together`, i => {
+      if (['closed', 'handed_over'].includes(i.snapshot.status)) throw new DomainError(409, 'Incident is closed or handed over');
+      const tasks = i.snapshot.tasks.filter(t => t.owner?.slackUserId === actor && ['proposed', 'assigned'].includes(t.status));
+      if (!tasks.length) throw new DomainError(403, 'No unacknowledged tasks assigned to you');
+      const source: SourceRef = { id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted ownership; physical completion is not confirmed` };
+      for (const t of tasks) {
+        t.status = 'acknowledged'; t.version++; t.sources.push(source);
+        for (const n of i.notifications.filter(n => n.taskId === t.id)) n.acknowledgedBy = actor;
+      }
+      if (i.snapshot.status === 'handoff_ready') i.snapshot.status = 'coordinating';
+      return [source];
+    }, expected);
+  }
+  automaticReportKey(id: string): string | undefined {
+    const i = this.get(id);
+    if (i.demoArchived || ['closed', 'handed_over'].includes(i.snapshot.status) || !i.snapshot.tasks.length || this.reportCurrent(i)) return;
+    if (i.snapshot.tasks.some(t => !t.owner && !['completed', 'cancelled'].includes(t.status))) return;
+    return this.fingerprint(i);
+  }
   close(id: string, actor: string, expected: number, note = '') {
     if (!this.config.supervisors.includes(actor)) throw new DomainError(403, 'Supervisor required');
     if (!note.trim()) throw new DomainError(400, 'Closure confirmation note is required');

@@ -46,11 +46,14 @@ export class SummaryPublisher {
       { type: 'section', text: { type: 'mrkdwn', text: `*Reported location:* ${escape(s.location)}\n*Commander:* ${escape(s.agents[0].summary).slice(0, 2000)}` } },
     ];
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: s.agents.slice(1).map(a => `*${a.name} (${a.status}):* ${escape(a.summary).slice(0, 350)}`).join('\n') } });
+    if (!['closed', 'handed_over'].includes(s.status) && s.tasks.some(t => ['assigned', 'proposed'].includes(t.status))) {
+      blocks.push({ type: 'actions', elements: [button('incident_accept_assigned', 'Accept my assigned tasks', { incidentId: id, version: s.version })] } as KnownBlock);
+    }
     for (const t of s.tasks.slice(0, 10)) {
       const value = { incidentId: id, taskId: t.id, version: t.version };
       blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*${escape(t.title)}*\n${t.status} | owner: ${escape(t.owner?.name ?? 'UNASSIGNED')}${t.blockedReason ? `\n${escape(t.blockedReason)}` : ''}` } });
       if (s.status !== 'closed') blocks.push({ type: 'actions', elements: [
-        ...(!['completed', 'needs_review', 'cancelled'].includes(t.status) ? [button('incident_acknowledge', 'Accept ownership', value)] : []),
+        ...(['assigned', 'proposed'].includes(t.status) ? [button('incident_acknowledge', 'Accept ownership', value)] : []),
         button('incident_complete', 'Confirm action…', value), button('incident_review', 'Request review', value),
       ] } as KnownBlock);
     }
