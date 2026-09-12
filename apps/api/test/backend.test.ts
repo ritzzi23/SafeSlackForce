@@ -144,3 +144,28 @@ test('incident titles drop Slack mentions, quote markers and HTML entities', asy
   assert.equal(slackTitle('&gt; <@U0C1J667B0C> SYNTHETIC DEMO: Forklift &amp; pallet at Dock B'), 'SYNTHETIC DEMO: Forklift & pallet at Dock B');
   assert.equal(slackTitle('<@U123>'), 'Incident report');
 });
+
+test('paired dashboard sessions survive an API restart and die when the token rotates', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ssf-session-'));
+  const { createHttp } = await import('../src/http.js');
+  const { Research } = await import('../src/research.js');
+  const path = join(dir, 'db.sqlite');
+  const boot = async (token: string) => {
+    const config = readConfig({ DASHBOARD_TOKEN: token, INCIDENTOS_MODE: 'fixture' } as any);
+    const store = await Store.open(path); const domain = new Incidents(store, config); const budget = new Budget(store);
+    const agents = new Agents(domain, new Notifications(domain, new FixtureChannel()));
+    const server = createHttp(domain, agents, budget, new Research(config, budget, store)).listen(0);
+    await new Promise(r => server.once('listening', r));
+    const url = `http://127.0.0.1:${(server.address() as any).port}`;
+    return { url, stop: () => { server.close(); store.close(); } };
+  };
+  const token = 'a'.repeat(32);
+  let s = await boot(token);
+  const paired = await fetch(`${s.url}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+  const cookie = paired.headers.get('set-cookie')!.split(';')[0];
+  s.stop(); s = await boot(token);
+  assert.equal((await fetch(`${s.url}/api/incidents`, { headers: { cookie } })).status, 200);
+  s.stop(); s = await boot('b'.repeat(32));
+  assert.equal((await fetch(`${s.url}/api/incidents`, { headers: { cookie } })).status, 401);
+  s.stop(); rmSync(dir, { recursive: true, force: true });
+});

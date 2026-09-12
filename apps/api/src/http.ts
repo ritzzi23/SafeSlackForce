@@ -1,5 +1,5 @@
 import express from 'express';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { agentIdSchema, questionSchema, type QuestionResult, type StreamUpdate } from '@incidentos/contracts';
 import { Agents } from './agents.js';
@@ -12,7 +12,16 @@ import { officeCategory } from './office.js';
 import { COPILOT_ENDPOINT, copilotHandler } from './copilot.js';
 type SavedRequest = QuestionResult & { incidentId: string; agentId: string; text: string };
 export function createHttp(domain: Incidents, agents: Agents, budget: Budget, research: Research, media?: Media) {
-  const app = express(); const sessions = new Map<string, number>();
+  const app = express();
+  // Sessions persist in SQLite (hashed ids only) so an API restart does not force re-pairing.
+  // Rotating DASHBOARD_TOKEN invalidates every stored session.
+  const digest = (v: string) => createHash('sha256').update(v).digest('hex');
+  const tokenId = digest(domain.config.token).slice(0, 16);
+  const sessions = {
+    get: (id: string) => { const r = domain.store.get<{ expires: number; tokenId: string }>(`session-${digest(id)}`); return r && r.tokenId === tokenId ? r.expires : undefined; },
+    set: (id: string, expires: number) => domain.store.transaction(() => domain.store.put(`session-${digest(id)}`, 'session', { expires, tokenId })),
+    delete: (id: string) => domain.store.transaction(() => domain.store.put(`session-${digest(id)}`, 'session', { expires: 0, tokenId })),
+  };
   app.disable('x-powered-by');
   // CopilotKit reads its own request stream, so the JSON parser must not consume it first.
   const json = express.json({ limit: '64kb' });
