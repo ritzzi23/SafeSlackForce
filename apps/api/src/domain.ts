@@ -27,7 +27,12 @@ export const procedure = {
 export class Incidents {
   bus = new EventEmitter();
   connection: IncidentSnapshot['slackConnection'] = 'disconnected';
-  constructor(public store: Store, public config: Config) { this.bus.setMaxListeners(100); }
+  constructor(public store: Store, public config: Config) {
+    if (store.list<Incident>('incident').some(i => i.snapshot.mode !== config.mode)) {
+      throw new Error('Database contains incidents from another mode. Use a separate DATABASE_PATH; fixture records must never be sent to live Slack.');
+    }
+    this.bus.setMaxListeners(100);
+  }
   all() { return this.store.list<Incident>('incident').filter(i => !i.demoArchived); }
   get(id: string) { const i = this.store.get<Incident>(id); if (!i || !i.snapshot) throw new DomainError(404, 'Incident not found'); return i; }
   find(team: string, channel: string, ts: string) { return this.all().find(i => i.team === team && i.channel === channel && i.rootTs === ts); }
@@ -54,7 +59,7 @@ export class Incidents {
     };
     this.commit(incident, 'Incident reported', [message.source]); return this.get(id);
   }
-  slackUrl(team: string, channel: string, ts: string) { return `https://app.slack.com/archives/${encodeURIComponent(channel)}/p${ts.replace('.', '')}`; }
+  slackUrl(team: string, channel: string, ts: string) { return this.config.mode === 'fixture' ? '' : `https://app.slack.com/archives/${encodeURIComponent(channel)}/p${ts.replace('.', '')}`; }
   commit(i: Incident, text: string, sources: SourceRef[] = [], handoff?: StreamUpdate['handoff']) {
     let event!: StreamUpdate;
     this.store.transaction(() => {

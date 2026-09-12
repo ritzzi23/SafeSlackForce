@@ -2224,3 +2224,8 @@ h1 {
     margin-bottom: 0;
   }
 }
+.voice-update { padding: 16px 20px; border-top: 1px solid #e1e5de; display: grid; gap: 10px; }
+.voice-update h4, .voice-update p { margin: 0; }
+.voice-update p, .voice-update label { font-size: 12px; line-height: 1.5; color: #59645c; }
+.voice-update textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid #cbd4c8; border-radius: 10px; padding: 10px; font: inherit; font-size: 13px; box-sizing: border-box; }
+.voice-update label { display: flex; gap: 8px; align-items: flex-start; }

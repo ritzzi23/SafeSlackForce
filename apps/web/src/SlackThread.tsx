@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { IncidentSnapshot, SourceRef } from "@incidentos/contracts";
 import { api, safeUrl } from "./api";
+import VoiceUpdate from "./VoiceUpdate";
 type Message = {
   id: string;
   text: string;
@@ -28,6 +29,8 @@ export default function SlackThread({
   const [messages, setMessages] = useState<Message[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState<Awaited<ReturnType<typeof api.details>>["attachments"]>([]);
+  useEffect(() => { setMessages([]); setAttachments([]); }, [snapshot.incidentId]);
   useEffect(() => {
     if (!connected) return;
     const controller = new AbortController();
@@ -36,7 +39,7 @@ export default function SlackThread({
     const t = setTimeout(() => {
       api
         .details(snapshot.incidentId, controller.signal)
-        .then((data) => setMessages(data.messages))
+        .then((data) => { if (!controller.signal.aborted) { setMessages(data.messages); setAttachments(data.attachments); } })
         .catch((e) => {
           if (!controller.signal.aborted)
             setError(
@@ -136,7 +139,9 @@ export default function SlackThread({
         <MessageSquare size={13} />
         <span>
           {connected
-            ? "Human source messages from the backend. Open Slack for the full conversation and approvals."
+            ? snapshot.mode === "fixture"
+              ? "Persisted synthetic source messages. No messages were sent to Slack in offline mode."
+              : "Human source messages from the backend. Open Slack for the full conversation and approvals."
             : "A preview of the incident conversation. These messages are scripted for the demo."}
         </span>
       </div>
@@ -212,6 +217,16 @@ export default function SlackThread({
           No source messages were returned for this incident.
         </p>
       )}
+      {connected && attachments.length > 0 && <section className="voice-update" aria-label="Incident attachments">
+        <h4>Evidence attachments</h4>
+        {attachments.map(file => <div key={file.id}>
+          <p>{file.name}{file.removed ? " — removed or superseded" : ""}</p>
+          {!file.removed && <a className="source" href={`/api/incidents/${encodeURIComponent(snapshot.incidentId)}/attachments/${encodeURIComponent(file.id)}`} target="_blank" rel="noreferrer">Open protected image <ExternalLink size={12} /></a>}
+          {file.observation && !file.removed && <p>{file.observation}</p>}
+        </div>)}
+        <p>Images and model observations do not confirm safety or completed actions.</p>
+      </section>}
+      {connected && <VoiceUpdate key={snapshot.incidentId} snapshot={snapshot} />}
       {snapshot.slackThreadUrl ? (
         <a
           className="slack-open-button"

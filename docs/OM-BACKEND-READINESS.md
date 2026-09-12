@@ -1,5 +1,9 @@
 # Om's backend: implemented versus externally verified
 
+> Integration update: backend and frontend are merged on `main`. See
+> [integration status](INTEGRATION-STATUS.md) for current run commands, checks and
+> remaining live boundaries. The original backend-only snapshot below is historical.
+
 12 September 2026. Scope: the agreed Slack-first hackathon backend. This document is not
 a production-readiness certification or proof that a real emergency can rely on this tool.
 

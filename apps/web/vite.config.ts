@@ -8,15 +8,14 @@ export default defineConfig({
       "@incidentos/contracts": fileURLToPath(
         new URL("../../packages/contracts/src/index.ts", import.meta.url),
       ),
-      zod: fileURLToPath(new URL("./node_modules/zod", import.meta.url)),
     },
   },
   server: {
     port: 5173,
     strictPort: true,
     proxy: {
-      "/api": { target: "http://localhost:4100", changeOrigin: true },
-      "/health": "http://localhost:4100",
+      "/api": { target: "http://127.0.0.1:4100", changeOrigin: true },
+      "/health": "http://127.0.0.1:4100",
     },
   },
   build: { chunkSizeWarningLimit: 1500 },

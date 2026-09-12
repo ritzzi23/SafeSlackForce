@@ -105,6 +105,13 @@ test('model tool permissions reject fabricated tools and report actual failure t
   const s = await setup(model); await assert.rejects(s.agents.run(s.id, 'records', 'Summarize'), /did not inspect/);
   assert.equal(sawError, true); assert.equal(s.channel.sent.length, 0); s.store.close();
 });
+test('fixture and live stores are separated and cannot dispatch each other’s incidents', async () => {
+  const s = await setup();
+  assert.equal(s.domain.get(s.id).snapshot.slackThreadUrl, '');
+  assert.throws(() => new Incidents(s.store, { ...config(), mode: 'live' }), /another mode/);
+  assert.notEqual(config().database, readConfig({ DASHBOARD_TOKEN: config().token, INCIDENTOS_MODE: 'live' }).database);
+  s.store.close();
+});
 test('HTTP pairing, persisted fixture workflow, stale requests and private report access', async () => {
   const s = await setup(); const research = new Research(config(), s.budget, s.store);
   const server = createHttp(s.domain, s.agents, s.budget, research).listen(0, '127.0.0.1');

@@ -4,6 +4,20 @@ import { demoSnapshot, demoAnswer } from "../data";
 import { api, ApiError, safeUrl } from "../api";
 afterEach(() => vi.unstubAllGlobals());
 describe("frontend contract", () => {
+  it("relays only an explicitly confirmed transcript with version and idempotency key", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "pending" })));
+    vi.stubGlobal("fetch", fetch);
+    await api.transcript("INC-042", "Reviewed update", 9, "voice-request-1");
+    expect(fetch.mock.calls[0][0]).toBe("/api/incidents/INC-042/transcripts");
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ text: "Reviewed update", expectedVersion: 9, requestId: "voice-request-1", confirmed: true });
+  });
+  it("creates a clearly labelled persisted rehearsal only via the fixture endpoint", async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(demoSnapshot(1))));
+    vi.stubGlobal("fetch", fetch);
+    expect((await api.createFixture()).mode).toBe("fixture");
+    expect(fetch.mock.calls[0][0]).toBe("/api/demo/incidents");
+    expect(JSON.parse(fetch.mock.calls[0][1].body).text).toContain("SYNTHETIC REHEARSAL");
+  });
   it("validates every demo stage against Om’s canonical runtime schema", () => {
     for (let step = 0; step < 5; step++) {
       const s = snapshotSchema.parse(demoSnapshot(step));

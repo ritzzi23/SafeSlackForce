@@ -2,19 +2,18 @@
 
 A working React / Three.js frontend with an original cutaway warehouse command office, central Commander, four specialist desks, agent inspection and conversation, tasks, evidence sources, timeline, and handoff report access.
 
-This package is deliberately independent of the root npm workspace for now. Om owns the root workspace configuration and lockfile. Only `apps/web/` is changed on `feat/ritesh-office-ui`; backend code and canonical contracts are unchanged.
+This package is now part of the root npm workspace on `main`. Om owns the root workspace configuration, backend and lockfile; Ritesh owns the UI. Install once from the root with `npm ci` using Node 22+.
 
 ## Run the demo
 
 From the repository root:
 
 ```sh
-cd apps/web
-npm ci --workspaces=false
+npm ci
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. No API key, backend, or network font service is needed. Fonts ship with the frontend.
+Open **http://localhost:5173**. This starts both servers. The standalone UI preview needs no API key; use `npm run dev:web` for only the frontend. Fonts ship with the frontend. Pair through settings to use persisted backend state; offline mode offers **Create offline rehearsal**.
 
 The office initially shows the team mobilizing. Select an agent, type a question, inspect task owners and sources, drag to orbit, or use zoom/reset. **Play demo** advances through five synthetic stages at 5.2 seconds per stage. Each stage can also be selected directly. At the handoff stage, the download button produces a clearly labeled synthetic Markdown report.
 
@@ -28,7 +27,7 @@ Demo data and replies are scripted and visibly labeled. They do not represent li
 4. Click **Connect Slack** or the settings icon. Enter `DASHBOARD_TOKEN` once in the pairing dialog. It is exchanged for the backend’s HTTP-only cookie and is never stored in browser storage or compiled into assets.
 5. The frontend loads the incident list and canonical snapshot, then subscribes to the named `snapshot.updated` SSE event with credentials. Questions are posted with their request ID and expected incident version; the response is polled from `/api/requests/:requestId`.
 
-The dev server proxies `/api` and `/health` to `http://localhost:4100`. Source URLs and report downloads come from the backend. Human task approvals and physical confirmations remain in Slack. Backend fixture mode retains a **BACKEND FIXTURE** label.
+The dev server proxies `/api` and `/health` to `http://127.0.0.1:4100`. Source URLs and report downloads come from the backend. Human task approvals and physical confirmations remain in Slack. Backend fixture mode retains a **BACKEND FIXTURE** label and never fabricates links to live Slack threads.
 
 A stale question gets an explicit error and refreshes the snapshot for human reconsideration. Duplicate/out-of-order stream updates are ignored. Invalid events are surfaced. EventSource reconnects automatically and the backend replays its persisted history; stale versions cannot replace current state. Switching incidents closes the previous stream.
 
@@ -73,4 +72,4 @@ Use the real backend and actual Slack actions for the final hackathon recording.
 
 The default expanded room view gives more space to the office. The first camera control restores the full workspace overview. Five visible workers correspond to the five real agent IDs; empty meeting chairs and furniture do not imply extra agents. Floor planks use one instanced mesh. Screens/signage are drawn locally, so the scene does not fetch external models or textures.
 
-The **Slack** tab shows a clearly labeled scripted conversation in standalone demo mode. When paired, it reads `GET /api/incidents/:id/details` for actual human source messages and links to the complete Slack conversation. This endpoint does not return all bot replies, so the panel explicitly describes its scope. Confirmations and channel posting remain in Slack; Commander chat still uses Om’s existing question endpoint.
+The **Slack** tab shows a clearly labeled scripted conversation in standalone demo mode. When paired, it reads `GET /api/incidents/:id/details` for source messages and protected attachments. This endpoint does not return all bot replies, so the panel explicitly describes its scope. Reviewed voice/text updates use the backend transcript relay; confirmations and approvals remain human actions in Slack. Browser microphone support is optional, with typed fallback and explicit review before submission. Commander chat uses the question endpoint. Backend fixture messages are labelled synthetic and never sent to Slack.

@@ -29,6 +29,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return r.json();
 }
 export const api = {
+  transcript: (id: string, text: string, expectedVersion: number, requestId: string) =>
+    request(`/api/incidents/${encodeURIComponent(id)}/transcripts`, { method: "POST", body: JSON.stringify({ text, expectedVersion, requestId, confirmed: true }) }),
+  transcriptStatus: (requestId: string) => request<{ status: string; error?: string }>(`/api/transcripts/${encodeURIComponent(requestId)}`),
+  health: () => request<{ ok: boolean; mode: "fixture" | "live"; slack: string; modelConfigured: boolean }>("/health"),
+  createFixture: async () => snapshotSchema.parse(await request("/api/demo/incidents", {
+    method: "POST",
+    body: JSON.stringify({ text: "SYNTHETIC REHEARSAL: Forklift incident at Loading Dock B. One person is reported injured. Site lead acknowledgement is outstanding." }),
+  })),
   pair: (token: string) =>
     request("/api/session", {
       method: "POST",
@@ -37,6 +45,7 @@ export const api = {
   details: async (id: string, signal?: AbortSignal) =>
     z
       .object({
+        attachments: z.array(z.object({ id: z.string(), name: z.string(), mimetype: z.string(), size: z.number(), removed: z.boolean().optional(), observation: z.string().optional(), source: sourceRefSchema })).default([]),
         messages: z.array(
           z.object({
             id: z.string(),
