@@ -14,7 +14,7 @@ test('incident task states map onto Ambiguous board columns', () => {
 
 test('Ambiguous Workspace mirror creates each task once, patches status changes and publishes reports once', async () => {
   const store = await Store.open(':memory:');
-  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'test-only-workspace-token-1234567', INCIDENTOS_MODE: 'fixture' } as any));
+  const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'test-only-workspace-token-1234567', SAFESLACKFORCE_MODE: 'fixture' } as any));
   const id = domain.create({ team: 'TDEMO', channel: 'CDEMO', ts: '100.1', user: 'UREPORTER', text: 'Forklift incident at Dock B' }).snapshot.incidentId;
   domain.applyProcedure(id);
   const calls: { method: string; url: string; body: any }[] = [];

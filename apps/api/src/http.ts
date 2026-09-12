@@ -1,7 +1,7 @@
 import express from 'express';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { agentIdSchema, questionSchema, type QuestionResult, type StreamUpdate } from '@incidentos/contracts';
+import { agentIdSchema, questionSchema, type QuestionResult, type StreamUpdate } from '@safeslackforce/contracts';
 import { Agents } from './agents.js';
 import { Budget } from './budget.js';
 import { DomainError, Incidents } from './domain.js';
@@ -38,13 +38,13 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
     if (req.method === 'OPTIONS') { res.sendStatus(204); return; } next();
   });
   const equal = (a: string, b: string) => { const x = Buffer.from(a); const y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
-  const sessionOf = (req: express.Request) => /(?:^|;\s*)incidentos_session=([a-f0-9]+)/.exec(req.headers.cookie ?? '')?.[1];
+  const sessionOf = (req: express.Request) => /(?:^|;\s*)safeslackforce_session=([a-f0-9]+)/.exec(req.headers.cookie ?? '')?.[1];
   app.get('/health', (_req, res) => res.json({ ok: true, mode: domain.config.mode, slack: domain.connection, modelConfigured: Boolean(domain.config.apiKey && domain.config.model), ambiguousWorkspace: Boolean(domain.config.ambiguousEnabled && domain.config.ambiguousKey) }));
   app.post('/api/session', (req, res) => {
     const token = typeof req.body?.token === 'string' ? req.body.token : '';
     if (!equal(token, domain.config.token)) { res.status(401).json({ error: 'Invalid pairing token' }); return; }
     const session = randomBytes(32).toString('hex'); sessions.set(session, Date.now() + SESSION_MS);
-    res.cookie('incidentos_session', session, { httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: SESSION_MS });
+    res.cookie('safeslackforce_session', session, { httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: SESSION_MS });
     res.json({ paired: true, role: 'demo-coordinator', mode: domain.config.mode });
   });
   app.use('/api', (req, res, next) => {
@@ -56,10 +56,10 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   const copilot = copilotHandler(domain.config);
   app.use((req, res, next) => {
     if (!req.path.startsWith(COPILOT_ENDPOINT)) { next(); return; }
-    if (!copilot) { res.status(503).json({ error: 'Copilot needs OPENROUTER_API_KEY and INCIDENTOS_MODEL' }); return; }
+    if (!copilot) { res.status(503).json({ error: 'Copilot needs OPENROUTER_API_KEY and SAFESLACKFORCE_MODEL' }); return; }
     copilot(req, res, next);
   });
-  app.post('/api/logout', (req, res) => { const session = sessionOf(req); if (session) sessions.delete(session); res.clearCookie('incidentos_session'); res.json({ ok: true }); });
+  app.post('/api/logout', (req, res) => { const session = sessionOf(req); if (session) sessions.delete(session); res.clearCookie('safeslackforce_session'); res.json({ ok: true }); });
   const wrap = (handler: (req: express.Request<Record<string, string>>, res: express.Response) => unknown | Promise<unknown>): express.RequestHandler<Record<string, string>> => (req, res, next) => { Promise.resolve().then(() => handler(req, res)).catch(next); };
   app.get('/api/incidents', (_req, res) => res.json(domain.all().map(i => ({ incidentId: i.snapshot.incidentId, title: i.snapshot.title, status: i.snapshot.status }))));
   app.get('/api/office', wrap((_req, res) => {
@@ -73,6 +73,10 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   }));
   app.get('/api/incidents/:id', wrap((req, res) => res.json(domain.get(req.params.id).snapshot)));
   app.get('/api/incidents/:id/readiness', wrap((req, res) => res.json(domain.readiness(req.params.id))));
+  app.post('/api/incidents/:id/response', wrap(async (req, res) => {
+    const id = req.params.id;
+    return res.json(await agents.enqueue(id, () => agents.response.run(id, req.body)));
+  }));
   app.get('/api/incidents/:id/details', wrap((req, res) => { const i = domain.get(req.params.id); return res.json({ facts: i.facts, messages: i.messages, notifications: i.notifications, attachments: i.attachments ?? [], summaryDelivery: domain.store.get(`summary-${req.params.id}`) ?? null }); }));
   app.get('/api/incidents/:id/attachments/:fileId', wrap((req, res) => {
     if (!media) throw new DomainError(404, 'Media not configured');

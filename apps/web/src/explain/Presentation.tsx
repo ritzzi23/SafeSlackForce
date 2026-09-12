@@ -33,10 +33,10 @@ const SLIDES: Slide[] = [
   { label: "Solution", kicker: "02 · What it does", title: "Report in the thread. The team forms around it.", body: <>
     <ol className="slide-steps">
       <li><b>Report</b><span>@mention the bot in the incident channel</span></li>
-      <li><b>Coordinate</b><span>Commander records sourced facts and delegates</span></li>
+      <li><b>Coordinate</b><span>Autopilot alerts management; Commander delegates</span></li>
       <li><b>Assign</b><span>Named owners get tasks with Slack buttons</span></li>
       <li><b>Escalate</b><span>No acknowledgement, the backup is chased</span></li>
-      <li><b>Correct</b><span>Edits and contradictions flag only affected work</span></li>
+      <li><b>Correct</b><span>Join by QR; contradictions flag only affected work</span></li>
       <li><b>Hand off</b><span>Sourced report; a supervisor accepts in Slack</span></li>
     </ol>
     <p className="slide-note">Live on screen: the 3D command center shows every agent's state as the thread changes.</p>
@@ -51,7 +51,7 @@ const SLIDES: Slide[] = [
   </> },
   { label: "Architecture", kicker: "04 · System design", title: "One thread, one process, five agents", body: <>
     <ArchitectureDiagram />
-    <p className="slide-note">Socket Mode needs no public webhook · every change is versioned and logged · the dashboard streams events and resumes after a disconnect. Full register: 19 design decisions on the System design page.</p>
+    <p className="slide-note">Socket Mode needs no public webhook · every change is versioned and logged · the dashboard streams events and resumes after a disconnect. Full register: 22 design decisions on the System design page.</p>
   </> },
   { label: "Agents", kicker: "05 · The agent team", title: "The model proposes. The server decides.", body: <>
     <div className="slide-agents">
@@ -62,13 +62,14 @@ const SLIDES: Slide[] = [
   { label: "Control", kicker: "06 · Humans in control", title: "Agents move digital work. People own the physical world.", body: <>
     <div className="slide-cols">
       <Card title="Only people confirm">Completing a physical task needs the owner or a supervisor and a written note. Agents cannot close an incident.</Card>
-      <Card title="Reviewed before relay">Voice updates, emergency call records and copilot questions are shown first and need an explicit OK.</Card>
+      <Card title="Autonomous where it is safe">Management alerts, scheduled updates, evidence reviews and reports run on their own. Spoken reports and copilot questions are reviewed before they reach Slack.</Card>
       <Card title="Everything is sourced">Facts are recorded as reported, with the Slack message they came from. Reports cite their sources.</Card>
     </div>
   </> },
-  { label: "Surfaces", kicker: "07 · More ways in", title: "A voice line, a copilot and a workspace, same guardrails", body: <>
-    <div className="slide-cols">
-      <Card title="Emergency call agent">Hands-free for the person on site: {FACTS.callQuestions} spoken triage questions, answers by voice or text. Words like "unconscious" or "trapped" trigger "Call 911 now" from a fixed rule that works even if the model is down. The reviewed call record goes into the thread for the Commander.</Card>
+  { label: "Surfaces", kicker: "07 · More ways in", title: "More ways in, same guardrails", body: <>
+    <div className="slide-cols two">
+      <Card title="Autopilot and shared thread">Management is alerted the moment an incident is reported, the next update is scheduled, and every action and receipt shows on the Autopilot board. Anyone on site joins the same Slack thread by QR code.</Card>
+      <Card title="Emergency call agent">Hands-free for the person on site: {FACTS.callQuestions} spoken triage questions. Words like "unconscious" or "trapped" trigger "Call 911 now" from a fixed rule that works even if the model is down.</Card>
       <Card title="CopilotKit incident copilot">Reads live incident state, focuses agent desks and opens panels. Before it asks an agent anything that posts to Slack, it shows an Approve and send card. Runs inside our API behind the same session and spend cap.</Card>
       <Card title="Ambiguous Workspace follow-through">Every human-owned incident task is mirrored onto the team's Ambiguous task board with its status kept in sync, and each handoff report is published as an Ambiguous doc. One-way, so the board can never confirm a physical action.</Card>
     </div>
@@ -87,7 +88,7 @@ const SLIDES: Slide[] = [
   </> },
   { label: "Scope", kicker: "09 · Honest scope", title: "What it is today, and what comes next", body: <>
     <div className="slide-cols two">
-      <div className="slide-card"><h3>Today</h3><ul><li>One Slack workspace and incident channel</li><li>Synthetic procedure, roster and office directory</li><li>Guides people to call 911; does not dispatch services</li><li>Dashboard deploys to Vercel; API runs as a persistent process</li></ul></div>
+      <div className="slide-card"><h3>Today</h3><ul><li>One Slack workspace and incident channel</li><li>Synthetic procedure, roster and office directory</li><li>Emergency-call dispatch is a labelled simulation; people are told to call 911</li><li>Dashboard deploys to Vercel; API runs as a persistent process</li></ul></div>
       <div className="slide-card"><h3>Next</h3><ul><li>Real phone escalation when a critical task goes unacknowledged</li><li>Microsoft Teams through CopilotKit channels</li><li>A library of approved procedures per site and incident type</li><li>Post-incident review generated from the event log</li></ul></div>
     </div>
   </> },

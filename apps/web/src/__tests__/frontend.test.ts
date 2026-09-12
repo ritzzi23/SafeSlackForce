@@ -1,9 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { snapshotSchema, agentIds } from "@incidentos/contracts";
+import { snapshotSchema, agentIds } from "@safeslackforce/contracts";
 import { demoSnapshot, demoAnswer } from "../data";
-import { api, ApiError, safeUrl } from "../api";
+import { api, ApiError, linkedIncidentId, safeUrl } from "../api";
 afterEach(() => vi.unstubAllGlobals());
 describe("frontend contract", () => {
+  it("opens the incident named by a Slack link instead of the first incident", () => {
+    const list = [{ incidentId: "INC-OLD" }, { incidentId: "INC-NEW" }];
+    expect(linkedIncidentId(list, "?incidentId=INC-NEW")).toBe("INC-NEW");
+    expect(linkedIncidentId(list, "")).toBe("INC-OLD");
+    expect(linkedIncidentId([], "?incidentId=INC-NEW")).toBeUndefined();
+  });
   it("relays only an explicitly confirmed transcript with version and idempotency key", async () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "pending" })));
     vi.stubGlobal("fetch", fetch);

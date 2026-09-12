@@ -26,11 +26,19 @@ export const taskViewSchema = z.object({
   sources: z.array(sourceRefSchema), slackActionUrl: z.string().nullable(),
 });
 export type TaskView = z.infer<typeof taskViewSchema>;
+export const responseActionSchema = z.object({
+  id: z.string(), kind: z.enum(['management', 'followup', 'emergency_call']), title: z.string(),
+  status: z.enum(['scheduled', 'running', 'completed', 'simulated', 'blocked', 'uncertain', 'cancelled']),
+  summary: z.string(), dueAt: z.string().nullable(), receipt: z.string().nullable(),
+  updatedAt: z.string(), sources: z.array(sourceRefSchema),
+});
+export type ResponseAction = z.infer<typeof responseActionSchema>;
 export const snapshotSchema = z.object({
   schemaVersion: z.literal(1), incidentId: z.string(), version: z.number().int(), cursor: z.number().int(),
   mode: z.enum(['live', 'fixture']), title: z.string(), location: z.string(), status: incidentStatusSchema,
   slackThreadUrl: z.string(), slackConnection: z.enum(['connected', 'reconnecting', 'disconnected']),
   agents: z.array(agentViewSchema), tasks: z.array(taskViewSchema),
+  responseActions: z.array(responseActionSchema).optional(),
   activity: z.array(z.object({ id: z.string(), text: z.string(), timestamp: z.string(), sources: z.array(sourceRefSchema) })),
   reports: z.array(z.object({ id: z.string(), version: z.number(), title: z.string(), downloadUrl: z.string() })),
 });

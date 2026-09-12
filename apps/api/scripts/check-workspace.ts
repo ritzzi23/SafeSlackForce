@@ -5,7 +5,7 @@ import { Store } from '../src/store.js';
 import { Incidents } from '../src/domain.js';
 import { AmbiguousWorkspace } from '../src/workspace.js';
 const store = await Store.open(':memory:');
-const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'smoke-only-token-123456789012345', INCIDENTOS_MODE: 'fixture' } as any));
+const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'smoke-only-token-123456789012345', SAFESLACKFORCE_MODE: 'fixture' } as any));
 const id = domain.create({ team: 'TDEMO', channel: 'CDEMO', ts: '1.1', user: 'UREPORTER', text: 'SYNTHETIC DEMO: Forklift incident at Loading Dock B. One person reported injured.' }).snapshot.incidentId;
 domain.applyProcedure(id);
 const ws = new AmbiguousWorkspace(domain, process.env.AMBIGUOUS_API_KEY!);

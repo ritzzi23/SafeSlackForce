@@ -12,7 +12,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@incidentos/contracts": ["../../packages/contracts/src/index.ts"]
+      "@safeslackforce/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
   "include": ["src"]

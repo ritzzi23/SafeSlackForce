@@ -21,13 +21,25 @@ Demo data and replies are scripted and visibly labeled. They do not represent li
 
 ## Connect to Om’s backend
 
-1. Run Om’s backend on port 4100 using `docs/BACKEND-SETUP.md`.
+1. Run Om’s backend on port 4100 as described in the root README.
 2. Set its `FRONTEND_ORIGIN=http://127.0.0.1:5173` to match this frontend URL. Alternatively, open the frontend at `http://localhost:5173` and retain the backend’s localhost origin.
 3. Report an incident through Slack (or create one with Om’s fixture API when testing).
 4. Click **Connect Slack** or the settings icon. Enter `DASHBOARD_TOKEN` once in the pairing dialog. It is exchanged for the backend’s HTTP-only cookie and is never stored in browser storage or compiled into assets.
 5. The frontend loads the incident list and canonical snapshot, then subscribes to the named `snapshot.updated` SSE event with credentials. Questions are posted with their request ID and expected incident version; the response is polled from `/api/requests/:requestId`.
 
-The dev server proxies `/api` and `/health` to `http://127.0.0.1:4100`. Source URLs and report downloads come from the backend. Human task approvals and physical confirmations remain in Slack. Backend fixture mode retains a **BACKEND FIXTURE** label and never fabricates links to live Slack threads.
+The dev server proxies `/api` and `/health` to `BACKEND_URL` in the repository-root `.env` (or shell environment), defaulting to `http://127.0.0.1:4100`. This setting stays in the Vite server and is not bundled into the browser. Restart the frontend after changing it. Source URLs and report downloads come from the backend. Human task approvals and physical confirmations remain in Slack. Backend fixture mode retains a **BACKEND FIXTURE** label and never fabricates links to live Slack threads.
+
+### Use one shared backend on Om's machine
+
+Only one backend should consume this Slack app's events with the current local SQLite design. Slack distributes events among connected Socket Mode clients; it does not replicate incidents between your databases.
+
+1. Om shares the API's reachable origin, not his `localhost` URL. On a trusted shared LAN he can bind the API with `HOST=0.0.0.0` and share his machine's LAN IP and port 4100; otherwise use an existing HTTPS deployment or private network connection. Venue Wi-Fi may block connections between laptops. Keep any publicly reachable endpoint behind HTTPS and the existing dashboard authentication.
+2. Om sets `FRONTEND_ORIGIN=http://localhost:5173` for your browser's exact origin, retains live mode and his database, and runs `npm run start:api`. The API must be reachable from your laptop.
+3. On your laptop, verify `curl --fail https://OM_API_HOST/health` (replace the example origin). Expect `mode: live` and `slack: connected`. This proves reachability; pairing and the incident list verify it is the server holding the desired incident.
+4. Stop your local API. Set `BACKEND_URL=https://OM_API_HOST` in your root `.env`, then run **only** `npm run dev:web`. Do not run `npm run dev`, which also starts another Slack consumer.
+5. Open `http://localhost:5173`, pair using Om's backend's dashboard token shared privately, and refresh incidents. The existing incident should appear if this is the backend that processed it. Your local provider keys are not needed for this frontend-only setup.
+
+Changing the proxy does not transfer a database. If Om's server has the existing incident, keep using that server for the rehearsal. The `DASHBOARD_URL` used in Slack links is the frontend address participants open, not the API proxy target.
 
 A stale question gets an explicit error and refreshes the snapshot for human reconsideration. Duplicate/out-of-order stream updates are ignored. Invalid events are surfaced. EventSource reconnects automatically and the backend replays its persisted history; stale versions cannot replace current state. Switching incidents closes the previous stream.
 
@@ -51,7 +63,7 @@ The layout prioritizes chat/tasks on phones, with a **View office** toggle. Agen
 - `src/SlackThread.tsx`: labeled synthetic Slack thread or validated backend source messages.
 - `src/App.tsx`: workspace shell, Commander/specialist conversations, tasks, activity, pairing, demo playback.
 - `src/api.ts`: session pairing, snapshot validation, SSE and question API adapter.
-- `src/data.ts`: explicit synthetic demo states, using `@incidentos/contracts`.
+- `src/data.ts`: explicit synthetic demo states, using `@safeslackforce/contracts`.
 - `src/styles.css`: responsive visual styling.
 
 ## Design and assets

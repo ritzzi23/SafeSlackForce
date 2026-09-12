@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { IncidentReadiness, IncidentSnapshot } from '@incidentos/contracts';
+import type { IncidentReadiness, IncidentSnapshot } from '@safeslackforce/contracts';
 import { api, safeUrl } from './api';
 import './IncidentJourney.css';
 

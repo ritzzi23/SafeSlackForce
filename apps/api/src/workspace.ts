@@ -1,4 +1,4 @@
-import type { StreamUpdate, TaskView } from '@incidentos/contracts';
+import type { StreamUpdate, TaskView } from '@safeslackforce/contracts';
 import type { Incidents } from './domain.js';
 
 const BASE = 'https://app.ambiguous.ai';

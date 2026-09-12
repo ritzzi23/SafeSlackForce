@@ -1,7 +1,7 @@
 import { CopilotKit, useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
 import { CopilotPopup } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
-import { agentIds, type AgentId, type IncidentSnapshot } from "@incidentos/contracts";
+import { agentIds, type AgentId, type IncidentSnapshot } from "@safeslackforce/contracts";
 
 type Tab = "chat" | "tasks" | "activity" | "thread" | "office" | "notifications";
 type Props = {

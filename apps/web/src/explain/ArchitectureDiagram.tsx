@@ -7,12 +7,12 @@ const BOXES: Box[] = [
   { x: 250, y: 90, w: 170, h: 80, title: "Slack thread", sub: "System of record", tone: "slack" },
   { x: 480, y: 40, w: 190, h: 60, title: "Slack Bolt · Socket Mode", sub: "Intake + de-duplication", tone: "api" },
   { x: 480, y: 130, w: 190, h: 70, title: "Incident domain", sub: "Versioned state · roles", tone: "api" },
-  { x: 480, y: 230, w: 190, h: 60, title: "Notification pump", sub: "Follow-up to backup · 3 tries", tone: "api" },
+  { x: 480, y: 230, w: 190, h: 60, title: "Notification + response pumps", sub: "Backup chase · alerts · scheduled updates", tone: "api" },
   { x: 480, y: 320, w: 190, h: 60, title: "Express API", sub: "Paired session · SSE", tone: "api" },
   { x: 730, y: 40, w: 220, h: 70, title: "Commander + 4 specialists", sub: "Per-agent tool allowlists", tone: "ai" },
   { x: 730, y: 140, w: 220, h: 56, title: "OpenRouter · Exa", sub: "Spend reserved before each call", tone: "ai" },
   { x: 730, y: 226, w: 220, h: 56, title: "SQLite", sub: "Entities + append-only event log", tone: "store" },
-  { x: 730, y: 312, w: 220, h: 76, title: "Dashboard", sub: "3D office · CopilotKit copilot", tone: "web" },
+  { x: 730, y: 312, w: 220, h: 76, title: "Dashboard", sub: "3D office · Autopilot · CopilotKit", tone: "web" },
 ];
 const LINES: [number, number, number, number, string?][] = [
   [190, 72, 250, 120], [190, 182, 250, 150], [420, 120, 480, 70, "events"], [575, 100, 575, 130],

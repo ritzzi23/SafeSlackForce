@@ -1,7 +1,7 @@
 import initSqlJs, { type Database } from 'sql.js';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { StreamUpdate } from '@incidentos/contracts';
+import type { StreamUpdate } from '@safeslackforce/contracts';
 
 export class Store {
   private constructor(private db: Database, private path: string) {}

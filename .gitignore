@@ -7,3 +7,7 @@ data/
 coverage/
 *.log
 .DS_Store
+
+# Design notes stay local; only the presentation PDF is published.
+docs/*
+!docs/SafeSlackForce-Presentation.pdf

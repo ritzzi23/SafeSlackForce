@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type IncidentSnapshot, type SourceRef, type StreamUpdate, type TaskView } from '@incidentos/contracts';
+import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type IncidentSnapshot, type SourceRef, type StreamUpdate, type TaskView } from '@safeslackforce/contracts';
 import type { Config } from './config.js';
 import { Store } from './store.js';
 import { handoffBlockers, closureBlockers } from './readiness.js';
@@ -16,6 +16,8 @@ export type Incident = {
   snapshot: IncidentSnapshot; team: string; channel: string; rootTs: string;
   messages: Message[]; facts: Fact[]; notifications: Notification[];
   criticalTaskIds: string[]; acceptedBy?: string; attachments?: Attachment[]; locationSourceIds?: string[]; demoArchived?: boolean;
+  evidenceReview?: { sourceIds: string[]; noObservationsReason: string | null; noLocationReason?: string | null };
+  coordinationFailures?: AgentId[]; coordinationQuestions?: boolean; coordinationStateKey?: string;
 };
 export const procedure = {
   id: 'warehouse-coordination-v1', version: 1, label: 'Synthetic warehouse coordination procedure',
@@ -63,6 +65,26 @@ export class Incidents {
   }
   slackUrl(team: string, channel: string, ts: string) { return this.config.mode === 'fixture' ? '' : `https://app.slack.com/archives/${encodeURIComponent(channel)}/p${ts.replace('.', '')}`; }
   commit(i: Incident, text: string, sources: SourceRef[] = [], handoff?: StreamUpdate['handoff']) {
+    const commander = i.snapshot.agents.find(a => a.id === 'commander')!;
+    const coordinationStateKey = JSON.stringify([i.snapshot.location, i.snapshot.tasks.map(t => [t.id, t.status, t.version]), i.notifications.map(n => [n.state, n.acknowledgedBy]), i.snapshot.responseActions, i.coordinationFailures, i.coordinationQuestions]);
+    if (i.coordinationFailures && commander.status !== 'working' && coordinationStateKey !== i.coordinationStateKey) {
+      i.coordinationStateKey = coordinationStateKey;
+      const open = i.snapshot.tasks.filter(t => !['completed', 'cancelled'].includes(t.status));
+      const unacknowledged = open.filter(t => ['proposed', 'assigned'].includes(t.status));
+      commander.summary = `Reported location: ${i.snapshot.location}. ${open.length} tasks remain open; ${unacknowledged.length} still await recorded ownership acceptance. ${i.notifications.filter(n => n.state === 'sent').length} notifications have delivery receipts; delivery is not acknowledgement.${i.coordinationFailures.length ? ` Needs attention: ${i.coordinationFailures.join(', ')} failed.` : ''} ${open.length ? 'Digital coordination has run; human confirmations remain outstanding.' : 'Review the incident record for remaining decisions.'}`;
+      if (this.config.autonomousResponse) {
+        const actions = i.snapshot.responseActions ?? [];
+        commander.summary = `Autonomous coordination active at ${i.snapshot.location}. ${actions.filter(a => a.status === 'completed').length} digital actions completed; ${actions.filter(a => a.status === 'scheduled').length} follow-ups scheduled. ${open.length} scene tasks remain open. Database lookups, notifications, scheduling and reports continue without ownership approval.${actions.some(a => a.status === 'simulated') ? ' Emergency calling is a labelled simulation; no real call was placed.' : ''}${actions.some(a => ['blocked', 'uncertain'].includes(a.status)) ? ' Check the action log for an unavailable or uncertain delivery.' : ''}${i.coordinationFailures.length ? ` Agent attention needed: ${i.coordinationFailures.join(', ')}.` : ''}`;
+      }
+      commander.status = i.coordinationFailures.length ? 'failed' : open.length || i.coordinationQuestions ? 'waiting' : 'done';
+      commander.waitingOn = commander.status === 'waiting' ? commander.summary : null;
+      commander.sources = [...new Map([...commander.sources, ...i.snapshot.tasks.flatMap(t => t.sources), ...sources].map(s => [s.id, s])).values()].slice(-10);
+      const communications = i.snapshot.agents.find(a => a.id === 'communications')!;
+      if (communications.status === 'waiting' && i.notifications.length && i.notifications.every(n => n.acknowledgedBy)) {
+        communications.status = 'done'; communications.waitingOn = null;
+        communications.summary = 'All notified tasks have recorded acknowledgement. Physical completion remains separate.';
+      }
+    }
     let event!: StreamUpdate;
     this.store.transaction(() => {
       i.snapshot.version++; i.snapshot.slackConnection = this.connection;
@@ -115,10 +137,13 @@ export class Incidents {
     a.currentTaskId = `run-${randomUUID()}`; a.status = 'working'; a.summary = task;
     this.commit(i, `Commander delegated: ${task}`, [], { from: 'commander', to: target, taskId: a.currentTaskId });
   }
+  matchingProcedureSource(id: string) {
+    return this.get(id).messages.find(m => !m.deleted && /\bforklift\b/i.test(m.text) && /\bdock\b/i.test(m.text));
+  }
   applyProcedure(id: string) {
     const i = this.get(id);
     if (i.snapshot.status === 'closed') throw new DomainError(409, 'Incident is closed');
-    const report = i.messages.find(m => !m.deleted && /\bforklift\b/i.test(m.text) && /\bdock\b/i.test(m.text));
+    const report = this.matchingProcedureSource(id);
     if (!report) throw new DomainError(409, 'No matching approved procedure. Ask the site lead; do not invent one.');
     if (procedure.tasks.every(template => i.snapshot.tasks.some(t => t.id === template.key))) return i.snapshot.tasks;
     const refs = this.source(i, [procedure.id, report.source.id]);
@@ -174,8 +199,8 @@ export class Incidents {
   }
   automaticReportKey(id: string): string | undefined {
     const i = this.get(id);
-    if (i.demoArchived || ['closed', 'handed_over'].includes(i.snapshot.status) || !i.snapshot.tasks.length || this.reportCurrent(i)) return;
-    if (i.snapshot.tasks.some(t => !t.owner && !['completed', 'cancelled'].includes(t.status))) return;
+    if (i.demoArchived || ['closed', 'handed_over'].includes(i.snapshot.status) || (!i.snapshot.tasks.length && !i.snapshot.responseActions?.length) || this.reportCurrent(i)) return;
+    if (!this.config.autonomousResponse && i.snapshot.tasks.some(t => !t.owner && !['completed', 'cancelled'].includes(t.status))) return;
     return this.fingerprint(i);
   }
   close(id: string, actor: string, expected: number, note = '') {
@@ -197,7 +222,8 @@ export class Incidents {
       ...i.facts.map(f => `- [${f.state}] ${clean(f.text)} (sources: ${f.sourceIds.join(', ')})`), '', '## Source messages, including corrections', '',
       ...i.messages.map(m => `- ${m.source.id} [${m.deleted ? 'superseded or removed' : 'current'}] ${clean(m.author)}: ${clean(m.text)}`), '', '## Attachments', '',
       ...(i.attachments ?? []).map(a => `- ${a.source.id}: ${clean(a.name)} [${a.removed ? 'removed' : 'available'}]. ${clean(a.observation ?? 'Not analyzed; no conclusions inferred.')}`), '', '## Notification receipts', '',
-      ...i.notifications.map(n => `- ${n.id}: ${n.state}, recipient ${n.recipient}, acknowledgement ${n.acknowledgedBy ?? 'not received'}, receipt ${n.messageId ?? 'none'}`), '', '## Timeline', '',
+      ...i.notifications.map(n => `- ${n.id}: ${n.state}, recipient ${n.recipient}, acknowledgement ${n.acknowledgedBy ?? 'not received'}, receipt ${n.messageId ?? 'none'}`), '', '## Autonomous response actions', '',
+      ...(i.snapshot.responseActions ?? []).map(a => `- [${a.status}] ${clean(a.title)}: ${clean(a.summary)}; due ${a.dueAt ?? 'immediate'}; receipt ${a.receipt ?? 'none'}`), '', '## Timeline', '',
       ...i.snapshot.activity.map(a => `- ${a.timestamp}: ${clean(a.text)}${a.sources.length ? ` [${a.sources.map(s => s.id).join(', ')}]` : ''}`), '', '## Summary source references', '',
       ...refs.map(r => `- ${r.id}: ${clean(r.label)}${r.url ? ` (${r.url})` : ''}`), '', 'This report records coordination and reported confirmations; it does not certify site safety.', ''].join('\n');
     this.store.transaction(() => this.store.put(reportId, 'report', { incidentId: id, markdown, fingerprint: this.fingerprint(i) }));
@@ -234,7 +260,7 @@ export class Incidents {
     };
   }
   private fingerprint(i: Incident) {
-    return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, attachments: i.attachments, location: i.snapshot.location })).digest('hex');
+    return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, attachments: i.attachments, location: i.snapshot.location, responseActions: i.snapshot.responseActions })).digest('hex');
   }
 }
 

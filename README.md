@@ -18,21 +18,22 @@ a physical action actually happened.
 1. [How it works](#how-it-works)
 2. [Why Slack matters](#why-slack-matters)
 3. [The agents](#the-agents)
-4. [Emergency call agent](#emergency-call-agent)
-5. [Incident copilot (CopilotKit)](#incident-copilot-copilotkit)
-6. [Ambiguous Workspace follow-through](#ambiguous-workspace-follow-through)
-7. [System design and presentation pages](#system-design-and-presentation-pages)
-8. [Architecture](#architecture)
-9. [Safety and reliability](#safety-and-reliability)
-10. [Run it locally](#run-it-locally)
-11. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
-12. [Configuration](#configuration)
-13. [Hosting](#hosting)
-14. [API reference](#api-reference)
-15. [Project structure](#project-structure)
-16. [Testing](#testing)
-17. [Built with](#built-with)
-18. [Hackathon note](#hackathon-note)
+4. [Autonomous response and shared incident thread](#autonomous-response-and-shared-incident-thread)
+5. [Emergency call agent](#emergency-call-agent)
+6. [Incident copilot (CopilotKit)](#incident-copilot-copilotkit)
+7. [Ambiguous Workspace follow-through](#ambiguous-workspace-follow-through)
+8. [System design and presentation pages](#system-design-and-presentation-pages)
+9. [Architecture](#architecture)
+10. [Safety and reliability](#safety-and-reliability)
+11. [Run it locally](#run-it-locally)
+12. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
+13. [Configuration](#configuration)
+14. [Hosting](#hosting)
+15. [API reference](#api-reference)
+16. [Project structure](#project-structure)
+17. [Testing](#testing)
+18. [Built with](#built-with)
+19. [Hackathon note](#hackathon-note)
 
 ---
 
@@ -40,22 +41,27 @@ a physical action actually happened.
 
 1. **Someone reports an incident** by mentioning the bot in the incident channel:
    `@SafeSlackForce Forklift tipped at Loading Dock B, one person hurt`
-2. **The Commander agent** reads the thread, records the reported location and facts (always with
+2. **Autopilot acts immediately.** Management (the configured supervisors) is alerted in the thread,
+   the next status update is scheduled, and an injury or emergency report triggers the emergency-call
+   routing step (recorded as a labelled simulation on synthetic incidents; no real call is placed).
+3. **The Commander agent** reads the thread, records the reported location and facts (always with
    the Slack message they came from), and delegates to specialists.
-3. **Specialists do the work.** Procedure matches the approved response procedure and creates
-   tasks. Evidence compares messages and flags contradictions. Communications notifies the
+4. **Specialists do the work.** Procedure matches the approved response procedure and creates
+   tasks. Evidence saves a sourced evidence review and flags contradictions. Communications notifies the
    right people. Records writes the handoff report.
-4. **People get tasks in Slack** with three buttons: *Acknowledge task*, *Request review* and
+5. **People get tasks in Slack** with three buttons: *Acknowledge task*, *Request review* and
    *Confirm action…*. Confirming opens a modal so the person states what was done.
-5. **Nobody answers?** After the follow-up window, the task is sent to the backup owner
+6. **Nobody answers?** After the follow-up window, the task is sent to the backup owner
    automatically.
-6. **Follow-up messages in the thread** (new details, edits, deleted messages, photos) update the
+7. **Follow-up messages in the thread** (new details, edits, deleted messages, photos) update the
    incident, and the agents re-check their work.
-7. **A sourced handoff report** is saved and can be downloaded from the dashboard. Open tasks are
+8. **A sourced handoff report** is saved and can be downloaded from the dashboard. Open tasks are
    listed honestly; the incident is not closed just because a report exists.
 
 Meanwhile the **3D command center** in the browser shows each agent's status, the Slack thread,
-evidence, notifications and the incident journey, updated live.
+evidence, notifications, the incident journey and the Autopilot action log, updated live. **Join this
+incident** opens the shared Slack thread with a copyable link and a scannable QR code, so anyone on
+site with workspace access can add observations from their phone.
 
 ## Why Slack matters
 
@@ -70,14 +76,36 @@ Each agent can only call the tools listed for it. The model never gets a tool ou
 
 | Agent | Job | Tools it can use |
 |---|---|---|
-| **Commander** | Reads the report, records location and facts, delegates to specialists, asks humans about missing facts | `read_incident`, `read_procedure`, `read_office`, `update_location`, `record_fact`, `delegate`, `ask_human` |
+| **Commander** | Reads the report, records location and facts, delegates to specialists, asks humans about missing facts | `read_incident`, `read_procedure`, `read_office`, `update_location`, `record_fact`, `delegate`, `ask_human`, `manage_response` |
 | **Procedure** | Applies the approved procedure only when the report fits its scope; creates human-owned tasks | `read_incident`, `read_procedure`, `read_office`, `apply_procedure`, `flag_contradiction`, `ask_human` |
-| **Evidence** | Compares current messages, links observations to facts, flags real contradictions, describes photos (as unverified observations) | `read_incident`, `record_fact`, `flag_contradiction`, `ask_human`, `inspect_image` |
-| **Communications** | Notifies the configured roster about open tasks without duplicates | `read_incident`, `read_procedure`, `read_office`, `notify` |
+| **Evidence** | Compares current messages, links observations to facts, flags real contradictions, describes photos (as unverified observations) | `read_incident`, `record_fact`, `save_evidence_review`, `flag_contradiction`, `ask_human`, `inspect_image` |
+| **Communications** | Notifies the configured roster about open tasks without duplicates | `read_incident`, `read_procedure`, `read_office`, `notify`, `manage_response` |
 | **Records** | Reads the full timeline and saves a sourced Markdown handoff report | `read_incident`, `read_history`, `read_office`, `save_report` |
 
-An **autopilot** watches for the moment the work settles and triggers Records automatically. It never
-invents a human acknowledgement or a physical action.
+An **autopilot** watches for the moment the work settles and triggers Records automatically (up to
+`AUTO_REPORT_LIMIT` revisions per incident). If model narration fails, it still saves a clearly labelled
+structured report from the stored evidence. It never invents a human acknowledgement or a physical action.
+
+## Autonomous response and shared incident thread
+
+With `AUTONOMOUS_RESPONSE_ENABLED=true`, digital coordination does not wait for anyone to accept
+ownership:
+
+- **Inform management.** A new incident immediately notifies `SLACK_SUPERVISOR_USER_IDS` in the
+  shared thread, with a delivery receipt.
+- **Scheduled follow-up.** A status update listing open work is scheduled and sent from a persisted
+  schedule, including for acknowledged but unfinished tasks. The Commander or Communications can
+  reschedule it with `manage_response` (30 to 3600 seconds).
+- **Emergency-call routing.** Reports mentioning an injury, an emergency, fire or unconsciousness create an
+  emergency-call action. With `EMERGENCY_CALL_MODE=simulation` on an explicitly synthetic incident it
+  is recorded as **SIMULATED: no call placed**; otherwise it stays blocked because no verified
+  telephone provider is connected. Other work continues either way.
+- **Autopilot log.** Every action, receipt, schedule and uncertain outcome appears on the Autopilot
+  board in the dashboard. An uncertain send is never duplicated, and actions interrupted by a restart
+  are marked uncertain.
+
+Agent actions cannot establish that physical work happened or that emergency services arrived. Those
+outcomes still need a named person and evidence.
 
 ## Emergency call agent
 
@@ -143,7 +171,7 @@ Two pages inside the dashboard, linked from the header. They load without pairin
 work on a hosted Vercel build.
 
 - **System design** (`/#system-design`): the high-level architecture diagram, the incident lifecycle,
-  the agent and tool table, and a register of 19 design decisions. Each decision says what it
+  the agent and tool table, and a register of 22 design decisions. Each decision says what it
   replaced, why it won, and where it lives in the code.
 - **Presentation** (`/#presentation`): an 11-slide pitch deck. Arrow keys move, **F** goes fullscreen,
   Home and End jump. Every number on the slides is read off the build (`apps/web/src/explain/facts.ts`).
@@ -201,6 +229,8 @@ flowchart LR
 
 ## Safety and reliability
 
+- **Digital work is autonomous, physical outcomes are not.** Alerts, schedules, evidence reviews and
+  reports run without approval gates; confirming a physical action still needs a named person.
 - **Humans confirm physical work.** Agents cannot mark a physical action complete, close an incident,
   diagnose, or authorize work.
 - **Everything is sourced.** Facts, contradictions and reports must cite the Slack message IDs they
@@ -249,8 +279,8 @@ The dashboard also has a clearly labelled standalone animated demo that works wi
 3. Bot scopes: `app_mentions:read`, `channels:history`, `chat:write` (add `files:read` for photos).
    Bot events: `app_mention`, `message.channels`.
 4. Invite the bot to your incident channel.
-5. In `.env`, set the Slack tokens and IDs, `OPENROUTER_API_KEY`, a tool-capable `INCIDENTOS_MODEL`
-   (for example `openai/gpt-4.1-mini`), and `INCIDENTOS_MODE=live`.
+5. In `.env`, set the Slack tokens and IDs, `OPENROUTER_API_KEY`, a tool-capable `SAFESLACKFORCE_MODEL`
+   (for example `openai/gpt-4.1-mini`), and `SAFESLACKFORCE_MODE=live`.
 6. Run `npm run doctor` to see anything still missing (it never prints secret values), then
    `npm run dev`.
 
@@ -263,7 +293,7 @@ All settings live in `.env` (gitignored). See [`.env.example`](.env.example).
 
 | Variable | Purpose |
 |---|---|
-| `INCIDENTOS_MODE` | `fixture` (offline, default) or `live` |
+| `SAFESLACKFORCE_MODE` | `fixture` (offline, default) or `live` |
 | `DASHBOARD_TOKEN` | Pairing secret for the dashboard, 24+ characters |
 | `HOST`, `PORT` | API bind address, default `127.0.0.1:4100` |
 | `FRONTEND_ORIGIN` | Allowed dashboard origin(s), comma-separated |
@@ -272,11 +302,14 @@ All settings live in `.env` (gitignored). See [`.env.example`](.env.example).
 | `SLACK_TEAM_ID`, `SLACK_DEMO_CHANNEL_ID` | The only workspace and channel the bot accepts |
 | `SLACK_LEAD_USER_ID`, `SLACK_BACKUP_USER_ID`, `SLACK_SUPERVISOR_USER_IDS` | Notification roster |
 | `FOLLOWUP_SECONDS` | Wait before escalating to the backup (default 300) |
-| `OPENROUTER_API_KEY`, `INCIDENTOS_MODEL` | Agent model |
+| `OPENROUTER_API_KEY`, `SAFESLACKFORCE_MODEL` | Agent model |
 | `MODEL_CALL_LIMIT`, `MODEL_MAX_ROUNDS`, `MODEL_BUDGET_USD`, `MODEL_CALL_RESERVE_USD` | Model spending and loop limits |
 | `EXA_API_KEY`, `EXA_ENABLED`, `EXA_CALL_LIMIT` | Web research |
 | `SLACK_FILES_ENABLED`, `VISION_ENABLED`, `VISION_MODEL` | Photo ingestion and description |
 | `AMBIGUOUS_ENABLED`, `AMBIGUOUS_API_KEY` | Mirror tasks and reports to Ambiguous Workspace |
+| `AUTONOMOUS_RESPONSE_ENABLED`, `AUTO_REPORT_LIMIT` | Autonomous alerts and follow-ups; automatic report revisions per incident |
+| `EMERGENCY_CALL_MODE` | `disabled` or `simulation` (synthetic incidents only; no real call) |
+| `BACKEND_URL` | Dashboard dev proxy target when sharing one backend |
 | `COPILOT_CALL_LIMIT` | Dashboard copilot requests per server run (default 40) |
 | `OFFICE_DEMO_ENABLED` | Synthetic office directory (run `npm run seed:office` first) |
 | `DATABASE_PATH` | Leave blank for separate fixture and live databases |
@@ -286,9 +319,18 @@ All settings live in `.env` (gitignored). See [`.env.example`](.env.example).
 The **dashboard** is a static build and deploys to **Vercel** using [`vercel.json`](vercel.json).
 
 The **API** needs a long-running process: it holds the Slack WebSocket open, runs the notification
-pump every second and keeps SQLite on disk. It runs on a machine or VM, and Vercel forwards `/api`
-and `/health` to it, so the browser sees a single origin. Step-by-step:
-[docs/DEPLOY-VERCEL.md](docs/DEPLOY-VERCEL.md). No secrets are stored in Vercel.
+and response pumps every second and keeps SQLite on disk. It runs on a machine or VM, and Vercel
+forwards `/api` and `/health` to it, so the browser sees a single origin. No secrets are stored in Vercel.
+
+1. Start the API: `npm run start:api`
+2. Expose it: `cloudflared tunnel --url http://127.0.0.1:4100` and copy the `https://…trycloudflare.com` URL.
+3. In `vercel.json`, replace `REPLACE-WITH-API-TUNNEL.trycloudflare.com` with that host.
+4. Import the repo in Vercel with the repository root as Root Directory (Node 22).
+5. In `.env`, set `FRONTEND_ORIGIN=http://localhost:5173,https://<project>.vercel.app` and
+   `DASHBOARD_URL=https://<project>.vercel.app`, then restart the API.
+
+A quick tunnel URL changes on every restart; update `vercel.json` and redeploy when it does. For a team
+sharing one backend, set `BACKEND_URL` to the reachable API origin and run only `npm run dev:web` locally.
 
 ## API reference
 
@@ -307,11 +349,12 @@ All `/api` routes require a paired session cookie or `Authorization: Bearer <DAS
 | `POST` | `/api/incidents/:id/transcripts` | Post a reviewed voice or call record to Slack |
 | `GET` | `/api/incidents/:id/reports/:reportId` | Download the handoff report (Markdown) |
 | `GET` | `/api/usage` | Provider calls and spend against limits |
+| `POST` | `/api/incidents/:id/response` | Run or reschedule an autonomous response action |
 | `POST` | `/api/research` | Budget-guarded Exa research |
 | `POST` | `/api/copilotkit` | CopilotKit runtime for the dashboard copilot |
 
-Fixture mode adds `/api/demo/*` routes for offline rehearsals. Full contract:
-[docs/BACKEND-SETUP.md](docs/BACKEND-SETUP.md).
+Fixture mode adds `/api/demo/*` routes for offline rehearsals. The shared request and snapshot
+schemas live in `packages/contracts/src/index.ts`.
 
 ## Project structure
 
@@ -328,6 +371,7 @@ apps/
       budget.ts        Spending reservations and limits
       notifications.ts Delivery queue, follow-up escalation, retries
       autopilot.ts     Automatic report follow-through
+      response.ts      Autonomous management alerts, scheduled updates, emergency-call routing
       research.ts      Exa research
       copilot.ts       CopilotKit runtime (OpenRouter via OpenAI adapter)
       workspace.ts     Ambiguous Workspace task and document mirror
@@ -344,10 +388,11 @@ apps/
       EmergencyCall.tsx Emergency call agent
       IncidentCopilot.tsx CopilotKit copilot: readable state, actions, approval card
       explain/         System design page, presentation deck, shared facts
+      ResponseBoard.tsx, IncidentShare.tsx  Autopilot action log, shared thread link and QR
       IncidentJourney.tsx, ActionReadiness.tsx, OfficeDirectory.tsx
 packages/contracts/    Shared zod schemas
 fixtures/              Slack app manifest, synthetic snapshots and office data
-docs/                  Design, setup, integration status, deployment
+docs/                  SafeSlackForce-Presentation.pdf
 scripts/               Dev runner and integration check
 ```
 
@@ -361,8 +406,9 @@ npm run doctor            # reports missing live configuration, never prints sec
 ```
 
 Tests cover the incident workflow, Slack intake, notification delivery and escalation, restart
-recovery, budget limits, media handling, the office directory, the frontend contracts and the emergency
-call agent.
+recovery, budget limits, media handling, the office directory, autonomous response actions, evidence
+reviews, configuration migration, the Ambiguous Workspace mirror, the frontend contracts and the
+emergency call agent: 64 backend and 23 frontend tests.
 
 ## Built with
 
@@ -374,6 +420,7 @@ call agent.
 - **Node.js**, **TypeScript**, **Express**, **zod**, **sql.js**
 - **React**, **Vite**, **three.js** with **react-three-fiber** and **drei**
 - **Web Speech API** for voice updates and the emergency call agent
+- **qrcode** for the shared incident thread QR
 - **Vercel** for dashboard hosting
 
 ## Hackathon note
@@ -381,6 +428,5 @@ call agent.
 SafeSlackForce was built from scratch during the **AI Tinkerers "Agents, Everywhere" hackathon** in
 New York on 12 September 2026 (first commit at 12:13 that day) by Om and Ritesh.
 
-More detail: [build plan](docs/INCIDENTOS-SLACK-BUILD-PLAN.md) ·
-[integration status](docs/INTEGRATION-STATUS.md) · [credit budget](docs/CREDIT-BUDGET.md) ·
-[autonomous follow-through](docs/AUTONOMOUS-FOLLOW-THROUGH.md)
+More detail: the in-app [System design](#system-design-and-presentation-pages) page and the
+[presentation PDF](docs/SafeSlackForce-Presentation.pdf).

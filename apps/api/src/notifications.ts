@@ -48,7 +48,7 @@ export class Notifications {
             const current = this.domain.get(id); const task = current.snapshot.tasks.find(t => t.id === pending.taskId)!;
             const value = JSON.stringify({ incidentId: id, taskId: task.id, version: task.version });
             const safeText = pending.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const messageId = await this.channel.send(current, `<@${pending.recipient}> ${safeText}`, [
+            const messageId = await this.channel.send(current, `<@${pending.recipient}> ${safeText}${this.domain.config.autonomousResponse ? '\nCoordination is running automatically. Reply in this thread with any new observations.' : ''}`, this.domain.config.autonomousResponse ? [] : [
               { action_id: 'incident_acknowledge', text: 'Acknowledge task', value },
               { action_id: 'incident_review', text: 'Request review', value },
               { action_id: 'incident_complete', text: 'Confirm action…', value },

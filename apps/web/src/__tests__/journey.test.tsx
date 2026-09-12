@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { readinessSchema, type IncidentReadiness } from '@incidentos/contracts';
+import { readinessSchema, type IncidentReadiness } from '@safeslackforce/contracts';
 import { demoSnapshot } from '../data';
 import { IncidentJourney, NotificationInbox, journeyStages } from '../IncidentJourney';
 

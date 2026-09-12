@@ -41,13 +41,15 @@ import {
   type AgentId,
   type IncidentSnapshot,
   type StreamUpdate,
-} from "@incidentos/contracts";
+} from "@safeslackforce/contracts";
 import { departments, demoAnswer, demoSnapshot, stages } from "./data";
-import { api, ApiError, safeUrl } from "./api";
+import { api, ApiError, linkedIncidentId, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
 import ActionReadiness from "./ActionReadiness";
 import OfficeDirectory from "./OfficeDirectory";
 import { IncidentJourney, NotificationInbox, useJourneyEvidence } from "./IncidentJourney";
+import IncidentShare from "./IncidentShare";
+import ResponseBoard from "./ResponseBoard";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 const IncidentCopilot = lazy(() => import("./IncidentCopilot"));
@@ -118,7 +120,7 @@ export default function App() {
   const [reset, setReset] = useState(0);
   const [input, setInput] = useState("");
   const [chats, setChats] = useState<Chat[]>([]);
-  const [modal, setModal] = useState<"connect" | "help" | null>(null);
+  const [modal, setModal] = useState<"connect" | "help" | "share" | null>(null);
   const [token, setToken] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [backendMode, setBackendMode] = useState<"fixture" | "live" | null>(null);
@@ -161,7 +163,7 @@ export default function App() {
         setPaired(true);
         setIncidents(list);
         if (list.length) {
-          const next = await api.snapshot(list[0].incidentId);
+          const next = await api.snapshot(linkedIncidentId(list, window.location.search)!);
           if (cancelled) return;
           setSnapshot(next); setLive(true); setPlaying(false);
         } else setModal("connect");
@@ -414,14 +416,9 @@ export default function App() {
       const list = await api.incidents();
       setIncidents(list);
       if (!list.length) {
-        setError(
-          health.mode === "fixture"
-            ? "Paired to the offline backend. Create a fixture incident below; no Slack messages or paid model calls will be made."
-            : "Connected, but no incidents exist yet. Report an incident in Slack, then refresh the incident list.",
-        );
         return;
       }
-      const next = await api.snapshot(list[0].incidentId);
+      const next = await api.snapshot(linkedIncidentId(list, window.location.search)!);
       setPlaying(false);
       setSnapshot(next);
       setChats([]);
@@ -447,16 +444,14 @@ export default function App() {
       setPaired(true);
       setIncidents(list);
       if (list.length) {
-        setSnapshot(await api.snapshot(list[0].incidentId));
+        setSnapshot(await api.snapshot(linkedIncidentId(list, window.location.search)!));
         setLive(true);
         setPlaying(false);
         setChats([]);
         setModal(null);
-      } else
-        setError(
-          health.mode === "fixture" ? "No fixture incidents yet. Create an offline rehearsal below." : "No incidents yet. Create one in the configured Slack channel.",
-        );
+      }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 401) setPaired(false);
       setError(e instanceof Error ? e.message : "Unable to refresh.");
     } finally {
       setConnecting(false);
@@ -475,6 +470,9 @@ export default function App() {
     if (pending) return;
     try {
       setSnapshot(await api.snapshot(id));
+      const url = new URL(window.location.href);
+      url.searchParams.set("incidentId", id);
+      window.history.replaceState(null, "", url);
       setChats([]);
       setSelected("commander");
     } catch (e) {
@@ -649,7 +647,7 @@ export default function App() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Open Slack <ExternalLink size={13} />
+                Shared thread <ExternalLink size={13} />
               </a>
             ) : (
               <button
@@ -661,6 +659,8 @@ export default function App() {
             )}
           </div>
           <IncidentJourney snapshot={snapshot} evidence={journeyEvidence?.data} connected={live} transport={transport} onOpen={setTab} />
+          {snapshot.slackThreadUrl && <button className="join-incident-banner" onClick={() => setModal("share")}><Users size={16} /><strong>Join this incident</strong><span>Share thread & QR · Add details together</span><ArrowRight size={16} /></button>}
+          {live && <ResponseBoard snapshot={snapshot} />}
           <div className="scene-area">
             <div className="scene-caption">
               <span className="tiny-square" /> WAREHOUSE OPERATIONS
@@ -1180,7 +1180,7 @@ export default function App() {
               </form>
               <p className="composer-note">
                 <ShieldCheck size={11} />
-                People approve. Agents coordinate.
+                Agents act. Every update improves the response.
               </p>
             </div>
           )}
@@ -1222,18 +1222,28 @@ export default function App() {
               {modal === "connect" ? <Wifi size={26} /> : <Layers3 size={26} />}
             </span>
             <h2 id="modal-title">
-              {modal === "connect"
-                ? "Connect your workspace"
+              {modal === "share" ? "Join the incident response" : modal === "connect"
+                ? paired ? "Workspace connected" : "Connect your workspace"
                 : "One incident. One shared picture."}
             </h2>
-            {modal === "connect" ? (
+            {modal === "share" ? <IncidentShare snapshot={snapshot} /> : modal === "connect" ? (
               <>
                 <p>
-                  Pair with Om’s backend to receive agent activity, send
-                  questions, and open the incident’s Slack thread.
+                  {paired
+                    ? "Your browser is paired. You do not need to enter the token again."
+                    : "Connect your workspace to receive agent activity, ask questions, and follow the incident’s Slack thread."}
                 </p>
                 {backendMode === "fixture" && <p className="field-hint">Offline backend: persisted fixture workflow only. Slack delivery and model inference are disabled until live mode is configured.</p>}
-                <form
+                {paired && !incidents.length && (
+                  <div className="connection-status" role="status">
+                    <strong>{backendMode === "fixture" ? "Ready for an offline rehearsal" : "Waiting for your first Slack incident"}</strong>
+                    <p>{backendMode === "fixture"
+                      ? "Create a rehearsal below to see persisted agent activity in the office."
+                      : "Mention the bot in your configured Slack channel with a clearly labelled synthetic incident. Then refresh incidents here to load the live office."}</p>
+                    <p>The office behind this window is still the scripted preview.</p>
+                  </div>
+                )}
+                {!paired && <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     void connect();
@@ -1250,14 +1260,8 @@ export default function App() {
                     placeholder="Enter your backend pairing token"
                   />
                   <span className="field-hint">
-                    The frontend proxies /api to localhost:4100. Your token is
-                    exchanged for a session cookie.
+                    Enter DASHBOARD_TOKEN from your private .env file. Pairing is saved for this browser session.
                   </span>
-                  {error && (
-                    <div role="alert" className="modal-error">
-                      {error}
-                    </div>
-                  )}
                   <button
                     className="primary-button"
                     disabled={!token || connecting}
@@ -1269,13 +1273,14 @@ export default function App() {
                     )}
                     Pair workspace
                   </button>
-                </form>
+                </form>}
+                {error && <div role="alert" className="modal-error">{error}</div>}
                 <button
                   className="text-button"
                   disabled={connecting}
                   onClick={() => void refreshIncidents()}
                 >
-                  Already paired? Refresh incidents <RotateCcw size={13} />
+                  {paired ? "Refresh incidents" : "Already paired? Refresh incidents"} <RotateCcw size={13} />
                 </button>
                 {paired && backendMode === "fixture" && <button className="primary-button" disabled={connecting} onClick={() => void createFixture()}>Create offline rehearsal</button>}
               </>
@@ -1296,10 +1301,10 @@ export default function App() {
                   <li>
                     Connect the backend for real events and agent responses.
                   </li>
-                  <li>Confirm actions and accept handoffs in Slack.</li>
+                  <li>Share the incident QR and add observations in its Slack thread.</li>
                 </ul>
                 <p className="field-hint">
-                  This local demo uses fictional data and scripted responses.
+                  Preview mode is scripted. A connected workspace runs live agents with the configured data and services.
                   Original scene geometry inspired by the Agents Office
                   reference.
                 </p>

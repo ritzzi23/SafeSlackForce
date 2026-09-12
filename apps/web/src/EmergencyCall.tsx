@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { IncidentSnapshot } from "@incidentos/contracts";
+import type { IncidentSnapshot } from "@safeslackforce/contracts";
 import { api } from "./api";
 
 type Recognition = {
