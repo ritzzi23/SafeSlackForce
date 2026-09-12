@@ -36,13 +36,20 @@ export class SlackIntake {
     const newFiles = files.length && !this.domain.store.get(filesKey) && event.subtype !== 'message_deleted';
     if (eventKey) this.domain.store.transaction(() => this.domain.store.put(eventKey, 'slack-event', { id, receivedAt: Date.now() }));
     if (!changed && !newFiles) return;
+    const jobId = `slack-job-${team}-${eventId || createHash('sha256').update(JSON.stringify(event)).digest('hex')}`;
+    const job = { id: jobId, incidentId: id, state: 'pending' };
+    this.domain.store.transaction(() => this.domain.store.put(jobId, 'slack-job', job));
     void this.agents.enqueue(id, async () => {
+      job.state = 'running'; this.domain.store.transaction(() => this.domain.store.put(jobId, 'slack-job', job));
       if (newFiles && this.files) {
         try { await this.files(id, message.ts, files); this.domain.store.transaction(() => this.domain.store.put(filesKey, 'slack-files', { id })); }
         catch { this.domain.agent(id, 'evidence', 'failed', 'Attachment ingestion failed; text evidence remains available'); }
       }
       await this.agents.run(id, 'commander', 'Read the updated incident, coordinate outstanding tasks and inspect relevant evidence. Do not repeat completed work.');
-    }).catch(() => { /* Agent failures are persisted by the runtime; no network retry loop. */ });
+      job.state = 'done'; this.domain.store.transaction(() => this.domain.store.put(jobId, 'slack-job', job));
+    }).catch(() => {
+      job.state = 'failed'; this.domain.store.transaction(() => this.domain.store.put(jobId, 'slack-job', job));
+    });
     return id;
   }
 }

@@ -1,0 +1,1407 @@
+{
+  "idle": {
+    "schemaVersion": 1,
+    "incidentId": "INC-500F1831",
+    "version": 1,
+    "cursor": 1,
+    "mode": "fixture",
+    "title": "Forklift incident at Loading Dock B",
+    "location": "Not yet confirmed",
+    "status": "reported",
+    "slackThreadUrl": "https://app.slack.com/archives/CDEMO/p1000001",
+    "slackConnection": "disconnected",
+    "agents": [
+      {
+        "id": "commander",
+        "name": "Commander",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "procedure",
+        "name": "Procedure",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "evidence",
+        "name": "Evidence",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "communications",
+        "name": "Communications",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "records",
+        "name": "Records",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      }
+    ],
+    "tasks": [],
+    "activity": [
+      {
+        "id": "97d5fa03-a8b2-46cc-abb3-74c308baade7",
+        "text": "Incident reported",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.973Z"
+      }
+    ],
+    "reports": []
+  },
+  "coordinating": {
+    "schemaVersion": 1,
+    "incidentId": "INC-500F1831",
+    "version": 13,
+    "cursor": 13,
+    "mode": "fixture",
+    "title": "Forklift incident at Loading Dock B",
+    "location": "Not yet confirmed",
+    "status": "coordinating",
+    "slackThreadUrl": "https://app.slack.com/archives/CDEMO/p1000001",
+    "slackConnection": "disconnected",
+    "agents": [
+      {
+        "id": "commander",
+        "name": "Commander",
+        "status": "done",
+        "currentTaskId": "run-16f0ed1c-3147-44f4-99df-93904182c9a1",
+        "summary": "[Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "procedure",
+        "name": "Procedure",
+        "status": "done",
+        "currentTaskId": "run-4fbbd434-8f6a-45cb-a392-ac9c4f81de7c",
+        "summary": "[Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "evidence",
+        "name": "Evidence",
+        "status": "done",
+        "currentTaskId": "run-f7c2890f-9d95-46bc-a6ad-b236c3456ec4",
+        "summary": "[Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "communications",
+        "name": "Communications",
+        "status": "done",
+        "currentTaskId": "run-1de41be0-08e5-4a60-9165-873f63f0039e",
+        "summary": "[Fixture mode] communications: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "records",
+        "name": "Records",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      }
+    ],
+    "tasks": [
+      {
+        "id": "lead",
+        "title": "Designated lead accepts incident coordination",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "area",
+        "title": "Obtain designated lead confirmation of the affected area status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "help",
+        "title": "Record explicit external emergency-service contact status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      }
+    ],
+    "activity": [
+      {
+        "id": "97d5fa03-a8b2-46cc-abb3-74c308baade7",
+        "text": "Incident reported",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.973Z"
+      },
+      {
+        "id": "cb442105-d984-4910-b711-1393e7299ed0",
+        "text": "commander: Coordinate this incident using available tools. Read the incident first.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.976Z"
+      },
+      {
+        "id": "42614ff1-46c7-4bcb-a6af-a7173d7108e9",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.977Z"
+      },
+      {
+        "id": "ee016b9a-1f77-455d-91d2-fcfbb6924a52",
+        "text": "Created owned tasks from the configured procedure",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "18bd11e3-af89-41d2-90dc-ce7b48e54392",
+        "text": "procedure: [Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "046641fe-005f-458e-85bc-58603c846841",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "e0977034-4bc5-4bbf-9bf0-c5c3ae919a8b",
+        "text": "evidence: [Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "c224782f-a0ee-47ac-b5b6-d828bbabc4bc",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.982Z"
+      },
+      {
+        "id": "02ae7ecb-a3ab-4d21-bcd7-4b2e3ffb4da3",
+        "text": "Notification queued for ULEAD",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.983Z"
+      },
+      {
+        "id": "b2365a39-7f38-4037-b6fb-3cb1b2c050d2",
+        "text": "Notification dispatch started",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.984Z"
+      },
+      {
+        "id": "5f8ba4a2-f9be-431a-95d7-279385ef6628",
+        "text": "Notification delivered to ULEAD; acknowledgement pending",
+        "sources": [
+          {
+            "id": "fixture-49568860-562d-4bff-b2cc-fff4b5e8b66b",
+            "kind": "tool_result",
+            "label": "Delivery receipt for ULEAD"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.986Z"
+      },
+      {
+        "id": "b5029456-444a-4875-a29d-017e8e865175",
+        "text": "communications: [Fixture mode] communications: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.987Z"
+      },
+      {
+        "id": "2617c145-dd82-4423-8e98-8539a04b5f05",
+        "text": "commander: [Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.988Z"
+      }
+    ],
+    "reports": []
+  },
+  "waiting": {
+    "schemaVersion": 1,
+    "incidentId": "INC-500F1831",
+    "version": 14,
+    "cursor": 14,
+    "mode": "fixture",
+    "title": "Forklift incident at Loading Dock B",
+    "location": "Not yet confirmed",
+    "status": "coordinating",
+    "slackThreadUrl": "https://app.slack.com/archives/CDEMO/p1000001",
+    "slackConnection": "disconnected",
+    "agents": [
+      {
+        "id": "commander",
+        "name": "Commander",
+        "status": "done",
+        "currentTaskId": "run-16f0ed1c-3147-44f4-99df-93904182c9a1",
+        "summary": "[Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "procedure",
+        "name": "Procedure",
+        "status": "done",
+        "currentTaskId": "run-4fbbd434-8f6a-45cb-a392-ac9c4f81de7c",
+        "summary": "[Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "evidence",
+        "name": "Evidence",
+        "status": "done",
+        "currentTaskId": "run-f7c2890f-9d95-46bc-a6ad-b236c3456ec4",
+        "summary": "[Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "communications",
+        "name": "Communications",
+        "status": "waiting",
+        "currentTaskId": "run-1de41be0-08e5-4a60-9165-873f63f0039e",
+        "summary": "Waiting for ULEAD acknowledgement",
+        "waitingOn": "Waiting for ULEAD acknowledgement",
+        "sources": []
+      },
+      {
+        "id": "records",
+        "name": "Records",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      }
+    ],
+    "tasks": [
+      {
+        "id": "lead",
+        "title": "Designated lead accepts incident coordination",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "area",
+        "title": "Obtain designated lead confirmation of the affected area status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "help",
+        "title": "Record explicit external emergency-service contact status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      }
+    ],
+    "activity": [
+      {
+        "id": "97d5fa03-a8b2-46cc-abb3-74c308baade7",
+        "text": "Incident reported",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.973Z"
+      },
+      {
+        "id": "cb442105-d984-4910-b711-1393e7299ed0",
+        "text": "commander: Coordinate this incident using available tools. Read the incident first.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.976Z"
+      },
+      {
+        "id": "42614ff1-46c7-4bcb-a6af-a7173d7108e9",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.977Z"
+      },
+      {
+        "id": "ee016b9a-1f77-455d-91d2-fcfbb6924a52",
+        "text": "Created owned tasks from the configured procedure",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "18bd11e3-af89-41d2-90dc-ce7b48e54392",
+        "text": "procedure: [Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "046641fe-005f-458e-85bc-58603c846841",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "e0977034-4bc5-4bbf-9bf0-c5c3ae919a8b",
+        "text": "evidence: [Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "c224782f-a0ee-47ac-b5b6-d828bbabc4bc",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.982Z"
+      },
+      {
+        "id": "02ae7ecb-a3ab-4d21-bcd7-4b2e3ffb4da3",
+        "text": "Notification queued for ULEAD",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.983Z"
+      },
+      {
+        "id": "b2365a39-7f38-4037-b6fb-3cb1b2c050d2",
+        "text": "Notification dispatch started",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.984Z"
+      },
+      {
+        "id": "5f8ba4a2-f9be-431a-95d7-279385ef6628",
+        "text": "Notification delivered to ULEAD; acknowledgement pending",
+        "sources": [
+          {
+            "id": "fixture-49568860-562d-4bff-b2cc-fff4b5e8b66b",
+            "kind": "tool_result",
+            "label": "Delivery receipt for ULEAD"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.986Z"
+      },
+      {
+        "id": "b5029456-444a-4875-a29d-017e8e865175",
+        "text": "communications: [Fixture mode] communications: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.987Z"
+      },
+      {
+        "id": "2617c145-dd82-4423-8e98-8539a04b5f05",
+        "text": "commander: [Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.988Z"
+      },
+      {
+        "id": "fce993a0-92f3-43ed-91df-19014bc15a10",
+        "text": "communications: Waiting for ULEAD acknowledgement",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.990Z"
+      }
+    ],
+    "reports": []
+  },
+  "contradiction": {
+    "schemaVersion": 1,
+    "incidentId": "INC-500F1831",
+    "version": 16,
+    "cursor": 16,
+    "mode": "fixture",
+    "title": "Forklift incident at Loading Dock B",
+    "location": "Not yet confirmed",
+    "status": "coordinating",
+    "slackThreadUrl": "https://app.slack.com/archives/CDEMO/p1000001",
+    "slackConnection": "disconnected",
+    "agents": [
+      {
+        "id": "commander",
+        "name": "Commander",
+        "status": "done",
+        "currentTaskId": "run-16f0ed1c-3147-44f4-99df-93904182c9a1",
+        "summary": "[Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "procedure",
+        "name": "Procedure",
+        "status": "done",
+        "currentTaskId": "run-4fbbd434-8f6a-45cb-a392-ac9c4f81de7c",
+        "summary": "[Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "evidence",
+        "name": "Evidence",
+        "status": "blocked",
+        "currentTaskId": "run-f7c2890f-9d95-46bc-a6ad-b236c3456ec4",
+        "summary": "Lead must reconcile the two observations",
+        "waitingOn": "Lead must reconcile the two observations",
+        "sources": []
+      },
+      {
+        "id": "communications",
+        "name": "Communications",
+        "status": "waiting",
+        "currentTaskId": "run-1de41be0-08e5-4a60-9165-873f63f0039e",
+        "summary": "Waiting for ULEAD acknowledgement",
+        "waitingOn": "Waiting for ULEAD acknowledgement",
+        "sources": []
+      },
+      {
+        "id": "records",
+        "name": "Records",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      }
+    ],
+    "tasks": [
+      {
+        "id": "lead",
+        "title": "Designated lead accepts incident coordination",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "area",
+        "title": "Obtain designated lead confirmation of the affected area status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "needs_review",
+        "version": 1,
+        "blockedReason": "Witness report conflicts with earlier area-status report",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "help",
+        "title": "Record explicit external emergency-service contact status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      }
+    ],
+    "activity": [
+      {
+        "id": "97d5fa03-a8b2-46cc-abb3-74c308baade7",
+        "text": "Incident reported",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.973Z"
+      },
+      {
+        "id": "cb442105-d984-4910-b711-1393e7299ed0",
+        "text": "commander: Coordinate this incident using available tools. Read the incident first.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.976Z"
+      },
+      {
+        "id": "42614ff1-46c7-4bcb-a6af-a7173d7108e9",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.977Z"
+      },
+      {
+        "id": "ee016b9a-1f77-455d-91d2-fcfbb6924a52",
+        "text": "Created owned tasks from the configured procedure",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "18bd11e3-af89-41d2-90dc-ce7b48e54392",
+        "text": "procedure: [Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "046641fe-005f-458e-85bc-58603c846841",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "e0977034-4bc5-4bbf-9bf0-c5c3ae919a8b",
+        "text": "evidence: [Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "c224782f-a0ee-47ac-b5b6-d828bbabc4bc",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.982Z"
+      },
+      {
+        "id": "02ae7ecb-a3ab-4d21-bcd7-4b2e3ffb4da3",
+        "text": "Notification queued for ULEAD",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.983Z"
+      },
+      {
+        "id": "b2365a39-7f38-4037-b6fb-3cb1b2c050d2",
+        "text": "Notification dispatch started",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.984Z"
+      },
+      {
+        "id": "5f8ba4a2-f9be-431a-95d7-279385ef6628",
+        "text": "Notification delivered to ULEAD; acknowledgement pending",
+        "sources": [
+          {
+            "id": "fixture-49568860-562d-4bff-b2cc-fff4b5e8b66b",
+            "kind": "tool_result",
+            "label": "Delivery receipt for ULEAD"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.986Z"
+      },
+      {
+        "id": "b5029456-444a-4875-a29d-017e8e865175",
+        "text": "communications: [Fixture mode] communications: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.987Z"
+      },
+      {
+        "id": "2617c145-dd82-4423-8e98-8539a04b5f05",
+        "text": "commander: [Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.988Z"
+      },
+      {
+        "id": "fce993a0-92f3-43ed-91df-19014bc15a10",
+        "text": "communications: Waiting for ULEAD acknowledgement",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.990Z"
+      },
+      {
+        "id": "2ea7d191-32bf-4856-b35d-29da42860701",
+        "text": "Fixture: conflicting witness observation",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.991Z"
+      },
+      {
+        "id": "c1baf6dc-96a5-4024-bb57-917c5022f596",
+        "text": "evidence: Lead must reconcile the two observations",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.992Z"
+      }
+    ],
+    "reports": []
+  },
+  "failed": {
+    "schemaVersion": 1,
+    "incidentId": "INC-500F1831",
+    "version": 17,
+    "cursor": 17,
+    "mode": "fixture",
+    "title": "Forklift incident at Loading Dock B",
+    "location": "Not yet confirmed",
+    "status": "coordinating",
+    "slackThreadUrl": "https://app.slack.com/archives/CDEMO/p1000001",
+    "slackConnection": "disconnected",
+    "agents": [
+      {
+        "id": "commander",
+        "name": "Commander",
+        "status": "done",
+        "currentTaskId": "run-16f0ed1c-3147-44f4-99df-93904182c9a1",
+        "summary": "[Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "procedure",
+        "name": "Procedure",
+        "status": "done",
+        "currentTaskId": "run-4fbbd434-8f6a-45cb-a392-ac9c4f81de7c",
+        "summary": "[Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "evidence",
+        "name": "Evidence",
+        "status": "blocked",
+        "currentTaskId": "run-f7c2890f-9d95-46bc-a6ad-b236c3456ec4",
+        "summary": "Lead must reconcile the two observations",
+        "waitingOn": "Lead must reconcile the two observations",
+        "sources": []
+      },
+      {
+        "id": "communications",
+        "name": "Communications",
+        "status": "failed",
+        "currentTaskId": "run-1de41be0-08e5-4a60-9165-873f63f0039e",
+        "summary": "Fixture delivery error",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "records",
+        "name": "Records",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      }
+    ],
+    "tasks": [
+      {
+        "id": "lead",
+        "title": "Designated lead accepts incident coordination",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "area",
+        "title": "Obtain designated lead confirmation of the affected area status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "needs_review",
+        "version": 1,
+        "blockedReason": "Witness report conflicts with earlier area-status report",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "help",
+        "title": "Record explicit external emergency-service contact status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      }
+    ],
+    "activity": [
+      {
+        "id": "97d5fa03-a8b2-46cc-abb3-74c308baade7",
+        "text": "Incident reported",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.973Z"
+      },
+      {
+        "id": "cb442105-d984-4910-b711-1393e7299ed0",
+        "text": "commander: Coordinate this incident using available tools. Read the incident first.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.976Z"
+      },
+      {
+        "id": "42614ff1-46c7-4bcb-a6af-a7173d7108e9",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.977Z"
+      },
+      {
+        "id": "ee016b9a-1f77-455d-91d2-fcfbb6924a52",
+        "text": "Created owned tasks from the configured procedure",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "18bd11e3-af89-41d2-90dc-ce7b48e54392",
+        "text": "procedure: [Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "046641fe-005f-458e-85bc-58603c846841",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "e0977034-4bc5-4bbf-9bf0-c5c3ae919a8b",
+        "text": "evidence: [Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "c224782f-a0ee-47ac-b5b6-d828bbabc4bc",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.982Z"
+      },
+      {
+        "id": "02ae7ecb-a3ab-4d21-bcd7-4b2e3ffb4da3",
+        "text": "Notification queued for ULEAD",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.983Z"
+      },
+      {
+        "id": "b2365a39-7f38-4037-b6fb-3cb1b2c050d2",
+        "text": "Notification dispatch started",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.984Z"
+      },
+      {
+        "id": "5f8ba4a2-f9be-431a-95d7-279385ef6628",
+        "text": "Notification delivered to ULEAD; acknowledgement pending",
+        "sources": [
+          {
+            "id": "fixture-49568860-562d-4bff-b2cc-fff4b5e8b66b",
+            "kind": "tool_result",
+            "label": "Delivery receipt for ULEAD"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.986Z"
+      },
+      {
+        "id": "b5029456-444a-4875-a29d-017e8e865175",
+        "text": "communications: [Fixture mode] communications: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.987Z"
+      },
+      {
+        "id": "2617c145-dd82-4423-8e98-8539a04b5f05",
+        "text": "commander: [Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.988Z"
+      },
+      {
+        "id": "fce993a0-92f3-43ed-91df-19014bc15a10",
+        "text": "communications: Waiting for ULEAD acknowledgement",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.990Z"
+      },
+      {
+        "id": "2ea7d191-32bf-4856-b35d-29da42860701",
+        "text": "Fixture: conflicting witness observation",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.991Z"
+      },
+      {
+        "id": "c1baf6dc-96a5-4024-bb57-917c5022f596",
+        "text": "evidence: Lead must reconcile the two observations",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.992Z"
+      },
+      {
+        "id": "2bc89f6f-4ff1-4a3f-814c-ed932e8e1a84",
+        "text": "communications: Fixture delivery error",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.993Z"
+      }
+    ],
+    "reports": []
+  },
+  "handed_over": {
+    "schemaVersion": 1,
+    "incidentId": "INC-500F1831",
+    "version": 19,
+    "cursor": 19,
+    "mode": "fixture",
+    "title": "Forklift incident at Loading Dock B",
+    "location": "Not yet confirmed",
+    "status": "handed_over",
+    "slackThreadUrl": "https://app.slack.com/archives/CDEMO/p1000001",
+    "slackConnection": "disconnected",
+    "agents": [
+      {
+        "id": "commander",
+        "name": "Commander",
+        "status": "done",
+        "currentTaskId": "run-16f0ed1c-3147-44f4-99df-93904182c9a1",
+        "summary": "[Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "procedure",
+        "name": "Procedure",
+        "status": "done",
+        "currentTaskId": "run-4fbbd434-8f6a-45cb-a392-ac9c4f81de7c",
+        "summary": "[Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "evidence",
+        "name": "Evidence",
+        "status": "blocked",
+        "currentTaskId": "run-f7c2890f-9d95-46bc-a6ad-b236c3456ec4",
+        "summary": "Lead must reconcile the two observations",
+        "waitingOn": "Lead must reconcile the two observations",
+        "sources": []
+      },
+      {
+        "id": "communications",
+        "name": "Communications",
+        "status": "failed",
+        "currentTaskId": "run-1de41be0-08e5-4a60-9165-873f63f0039e",
+        "summary": "Fixture delivery error",
+        "waitingOn": null,
+        "sources": []
+      },
+      {
+        "id": "records",
+        "name": "Records",
+        "status": "idle",
+        "currentTaskId": null,
+        "summary": "No work assigned",
+        "waitingOn": null,
+        "sources": []
+      }
+    ],
+    "tasks": [
+      {
+        "id": "lead",
+        "title": "Designated lead accepts incident coordination",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "area",
+        "title": "Obtain designated lead confirmation of the affected area status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "needs_review",
+        "version": 1,
+        "blockedReason": "Witness report conflicts with earlier area-status report",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      },
+      {
+        "id": "help",
+        "title": "Record explicit external emergency-service contact status",
+        "agentId": "procedure",
+        "owner": {
+          "slackUserId": "ULEAD",
+          "name": "ULEAD"
+        },
+        "status": "assigned",
+        "version": 1,
+        "blockedReason": null,
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "slackActionUrl": "https://app.slack.com/archives/CDEMO/p1000001"
+      }
+    ],
+    "activity": [
+      {
+        "id": "97d5fa03-a8b2-46cc-abb3-74c308baade7",
+        "text": "Incident reported",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.973Z"
+      },
+      {
+        "id": "cb442105-d984-4910-b711-1393e7299ed0",
+        "text": "commander: Coordinate this incident using available tools. Read the incident first.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.976Z"
+      },
+      {
+        "id": "42614ff1-46c7-4bcb-a6af-a7173d7108e9",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.977Z"
+      },
+      {
+        "id": "ee016b9a-1f77-455d-91d2-fcfbb6924a52",
+        "text": "Created owned tasks from the configured procedure",
+        "sources": [
+          {
+            "id": "warehouse-coordination-v1",
+            "kind": "procedure",
+            "label": "Synthetic warehouse coordination procedure"
+          },
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "18bd11e3-af89-41d2-90dc-ce7b48e54392",
+        "text": "procedure: [Fixture mode] procedure: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.978Z"
+      },
+      {
+        "id": "046641fe-005f-458e-85bc-58603c846841",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "e0977034-4bc5-4bbf-9bf0-c5c3ae919a8b",
+        "text": "evidence: [Fixture mode] evidence: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.980Z"
+      },
+      {
+        "id": "c224782f-a0ee-47ac-b5b6-d828bbabc4bc",
+        "text": "Commander delegated: Fixture coordination",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.982Z"
+      },
+      {
+        "id": "02ae7ecb-a3ab-4d21-bcd7-4b2e3ffb4da3",
+        "text": "Notification queued for ULEAD",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.983Z"
+      },
+      {
+        "id": "b2365a39-7f38-4037-b6fb-3cb1b2c050d2",
+        "text": "Notification dispatch started",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.984Z"
+      },
+      {
+        "id": "5f8ba4a2-f9be-431a-95d7-279385ef6628",
+        "text": "Notification delivered to ULEAD; acknowledgement pending",
+        "sources": [
+          {
+            "id": "fixture-49568860-562d-4bff-b2cc-fff4b5e8b66b",
+            "kind": "tool_result",
+            "label": "Delivery receipt for ULEAD"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.986Z"
+      },
+      {
+        "id": "b5029456-444a-4875-a29d-017e8e865175",
+        "text": "communications: [Fixture mode] communications: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.987Z"
+      },
+      {
+        "id": "2617c145-dd82-4423-8e98-8539a04b5f05",
+        "text": "commander: [Fixture mode] commander: 3 tasks remain open. No live model was called.",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.988Z"
+      },
+      {
+        "id": "fce993a0-92f3-43ed-91df-19014bc15a10",
+        "text": "communications: Waiting for ULEAD acknowledgement",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.990Z"
+      },
+      {
+        "id": "2ea7d191-32bf-4856-b35d-29da42860701",
+        "text": "Fixture: conflicting witness observation",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.991Z"
+      },
+      {
+        "id": "c1baf6dc-96a5-4024-bb57-917c5022f596",
+        "text": "evidence: Lead must reconcile the two observations",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.992Z"
+      },
+      {
+        "id": "2bc89f6f-4ff1-4a3f-814c-ed932e8e1a84",
+        "text": "communications: Fixture delivery error",
+        "sources": [],
+        "timestamp": "2026-09-12T17:10:50.993Z"
+      },
+      {
+        "id": "e85db575-d86e-43b8-92c2-9c5c87a09b4f",
+        "text": "Saved sourced handoff report",
+        "sources": [
+          {
+            "id": "1.000001",
+            "label": "UREPORTER: initial report",
+            "kind": "slack_message",
+            "url": "https://app.slack.com/archives/CDEMO/p1000001"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.995Z"
+      },
+      {
+        "id": "74ced782-cd38-4c82-83d6-c4a03f65cd29",
+        "text": "Handoff accepted by USUPERVISOR",
+        "sources": [
+          {
+            "id": "78e6b220-8f6f-46ce-9e11-ec0b7c935331",
+            "kind": "human_confirmation",
+            "label": "USUPERVISOR accepted handoff"
+          }
+        ],
+        "timestamp": "2026-09-12T17:10:50.996Z"
+      }
+    ],
+    "reports": [
+      {
+        "id": "report-ac994e66-7270-41ea-8792-be0782b1408c",
+        "version": 1,
+        "title": "Handoff report 1",
+        "downloadUrl": "/api/incidents/INC-500F1831/reports/report-ac994e66-7270-41ea-8792-be0782b1408c"
+      }
+    ]
+  }
+}

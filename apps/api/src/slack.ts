@@ -37,7 +37,15 @@ export class SlackChannel implements Channel {
     });
     this.summaries.start();
     for (const state of ['connected', 'reconnecting', 'disconnected'] as const) this.receiver.client.on(state, () => domain.setConnection(state));
-    app.event('app_mention', async ({ event, body }) => { try { intake.receive(event, body.team_id || '', body.event_id); } catch (e) { reportError(e); } });
+    app.event('app_mention', async ({ event, body }) => {
+      try {
+        if (body.team_id === this.config.team && event.channel === this.config.channel && /retry summary after checking Slack/i.test(event.text)) {
+          const incident = domain.find(body.team_id, event.channel, event.thread_ts || event.ts);
+          if (incident && event.user) { this.summaries!.retry(incident.snapshot.incidentId, event.user); return; }
+        }
+        intake.receive(event, body.team_id || '', body.event_id);
+      } catch (e) { reportError(e); }
+    });
     app.event('message', async ({ event, body }) => { try { intake.receive(event, body.team_id || '', body.event_id); } catch (e) { reportError(e); } });
 
     app.action(/incident_(acknowledge|review|complete)/, async ({ ack, body, client }) => {

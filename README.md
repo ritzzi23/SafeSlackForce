@@ -12,3 +12,7 @@ For the direct ownership checklist and integration checkpoints, use the
 Backend work is on `feat/om-backend-agents`. Start with the
 [backend setup and frontend API contract](docs/BACKEND-SETUP.md) and
 [OpenRouter/Exa credit budget](docs/CREDIT-BUDGET.md).
+
+For the exact implementation status and remaining live setup, see
+[Om's backend readiness checklist](docs/OM-BACKEND-READINESS.md).
+Ritesh owns only frontend/UI; all agent and backend logic is under `apps/api`.

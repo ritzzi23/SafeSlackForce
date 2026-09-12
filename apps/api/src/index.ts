@@ -24,6 +24,10 @@ const media = new Media(domain, channel instanceof SlackChannel ? { info: async 
 const agents = new Agents(domain, notifications, model, media);
 for (const r of store.list<any>('request').filter(r => r.status === 'pending')) store.transaction(() => store.put(`request-${r.requestId}`, 'request', { ...r, status: 'failed', error: 'Server restarted during this request' }));
 for (const r of store.list<any>('transcript').filter(r => r.status === 'pending')) store.transaction(() => store.put(`transcript-${r.requestId}`, 'transcript', { ...r, status: 'uncertain', error: 'Server restarted; inspect Slack before resubmitting' }));
+for (const job of store.list<any>('slack-job').filter(j => ['pending', 'running'].includes(j.state))) {
+  store.transaction(() => store.put(job.id, 'slack-job', { ...job, state: 'failed' }));
+  domain.agent(job.incidentId, 'commander', 'failed', 'Server restarted during Slack work; supervisor can retry coordination');
+}
 for (const i of domain.all()) for (const a of i.snapshot.agents) if (a.status === 'working') domain.agent(i.snapshot.incidentId, a.id, 'failed', 'Server restarted during agent work');
 if (channel instanceof SlackChannel) channel.wire(domain, agents, (id, ts, files) => media.ingest(id, ts, files));
 const app = createHttp(domain, agents, budget, new Research(config, budget, store), media);

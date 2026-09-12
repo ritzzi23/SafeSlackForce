@@ -8,7 +8,9 @@
     "start:api": "tsx apps/api/src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test apps/api/test/*.test.ts",
-    "fixtures": "tsx apps/api/scripts/fixtures.ts"
+    "fixtures": "tsx apps/api/scripts/fixtures.ts",
+    "fixtures:write": "tsx apps/api/scripts/fixtures.ts --write",
+    "doctor": "tsx apps/api/scripts/doctor.ts"
   },
   "engines": { "node": ">=18.20" },
   "overrides": { "qs": "^6.16.0" },

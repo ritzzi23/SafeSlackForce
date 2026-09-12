@@ -96,7 +96,9 @@ export class Incidents {
   }
   agent(id: string, agent: AgentId, status: AgentStatus, summary: string, sources: SourceRef[] = []) {
     this.mutate(id, `${agent}: ${summary}`, i => {
-      const a = i.snapshot.agents.find(a => a.id === agent)!; a.status = status; a.summary = summary;
+      const a = i.snapshot.agents.find(a => a.id === agent)!;
+      if (status === 'working' && (a.status !== 'working' || !a.currentTaskId)) a.currentTaskId = `run-${randomUUID()}`;
+      a.status = status; a.summary = summary;
       a.waitingOn = status === 'waiting' || status === 'blocked' ? summary : null; a.sources = sources;
       return sources;
     });

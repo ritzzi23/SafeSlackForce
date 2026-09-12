@@ -2,6 +2,7 @@
 
 12 September 2026. Current implementation plan for the hackathon build.
 This is a development specification, not a claim that the integrations are implemented.
+Current implementation status: [Om's backend readiness checklist](OM-BACKEND-READINESS.md).
 
 ## 1. Decisions to build against
 
@@ -192,7 +193,7 @@ SLACK_DEMO_CHANNEL_ID
 SLACK_SUPERVISOR_USER_IDS
 OPENROUTER_API_KEY
 INCIDENTOS_MODEL
-INCIDENTOS_SESSION_SECRET
+DASHBOARD_TOKEN
 ```
 
 ### Routing, replies and buttons
@@ -419,4 +420,3 @@ the fixture transport with the real backend at the first integration checkpoint.
 
 Both: deliver one real Slack report through agent coordination to a human-accepted handoff,
 visible in the 3D office and supported by a sourced report.
-

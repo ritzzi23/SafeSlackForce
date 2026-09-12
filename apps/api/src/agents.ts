@@ -83,7 +83,7 @@ export class Agents {
           const answer = response.content || 'No additional findings.';
           const current = this.domain.get(id);
           const unresolvedReview = agent === 'evidence' && current.snapshot.tasks.some(t => t.status === 'needs_review');
-          const awaitingAck = agent === 'communications' && current.notifications.some(n => n.state === 'sent' && !n.acknowledgedBy);
+          const awaitingAck = agent === 'communications' && current.notifications.some(n => ['pending', 'sending', 'sent'].includes(n.state) && !n.acknowledgedBy);
           const finalAnswer = failures.size ? `Incomplete: ${[...failures].join(', ')} failed. ${answer}` : answer;
           this.domain.agent(id, agent, failures.size ? 'failed' : unresolvedReview ? 'blocked' : waitingForHuman || awaitingAck ? 'waiting' : 'done', finalAnswer, runSources);
           return finalAnswer;

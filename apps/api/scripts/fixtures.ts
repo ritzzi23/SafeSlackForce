@@ -4,6 +4,7 @@ import { Store } from '../src/store.js';
 import { Incidents } from '../src/domain.js';
 import { Agents } from '../src/agents.js';
 import { FixtureChannel, Notifications } from '../src/notifications.js';
+import { mkdirSync, writeFileSync } from 'node:fs';
 const store = await Store.open(':memory:');
 const config = readConfig({ DASHBOARD_TOKEN: 'fixture-generator-not-a-real-secret', INCIDENTOS_MODE: 'fixture' });
 const domain = new Incidents(store, config);
@@ -18,4 +19,9 @@ domain.agent(id, 'communications', 'failed', 'Fixture delivery error'); snapshot
 domain.report(id, 'Synthetic handoff with open tasks assigned to named owners.', ['1.000001']);
 domain.handoff(id, 'USUPERVISOR', domain.get(id).snapshot.version); snapshots.handed_over = domain.get(id).snapshot;
 for (const snapshot of Object.values(snapshots)) snapshotSchema.parse(snapshot);
-console.log(JSON.stringify(snapshots, null, 2)); store.close();
+if (process.argv.includes('--write')) {
+  mkdirSync('fixtures', { recursive: true });
+  writeFileSync('fixtures/incident-snapshots.json', JSON.stringify(snapshots, null, 2) + '\n');
+  console.log('Generated fixtures/incident-snapshots.json (synthetic, no provider calls)');
+} else console.log(JSON.stringify(snapshots, null, 2));
+store.close();

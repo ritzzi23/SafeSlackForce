@@ -1,5 +1,5 @@
 import type { KnownBlock } from '@slack/types';
-import { Incidents } from './domain.js';
+import { DomainError, Incidents } from './domain.js';
 import type { StreamUpdate } from '@incidentos/contracts';
 
 const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -19,6 +19,15 @@ export class SummaryPublisher {
     if (this.timers.has(id)) return;
     this.timers.set(id, setTimeout(() => { this.timers.delete(id); void this.publish(id).catch(() => {}); }, 750));
   }
+  retry(id: string, actor: string) {
+    if (!this.domain.config.supervisors.includes(actor)) throw new DomainError(403, 'Supervisor required');
+    if (this.inflight.has(id)) throw new DomainError(409, 'Summary update is already running');
+    const key = `summary-${id}`; const prior = this.domain.store.get<SummaryRecord>(key);
+    if (prior?.ts) { this.schedule(id); return; }
+    this.domain.store.transaction(() => this.domain.store.put(key, 'summary', { state: 'sent' }));
+    this.domain.mutate(id, `${actor} checked Slack and explicitly requested summary recreation`, () => []);
+    this.schedule(id);
+  }
   async publish(id: string): Promise<void> {
     const active = this.inflight.get(id);
     if (active) { await active; this.schedule(id); return; }
@@ -36,6 +45,7 @@ export class SummaryPublisher {
       { type: 'header', text: { type: 'plain_text', text: `${id} | ${s.status}` } },
       { type: 'section', text: { type: 'mrkdwn', text: `*Reported location:* ${escape(s.location)}\n*Commander:* ${escape(s.agents[0].summary).slice(0, 2000)}` } },
     ];
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: s.agents.slice(1).map(a => `*${a.name} (${a.status}):* ${escape(a.summary).slice(0, 350)}`).join('\n') } });
     for (const t of s.tasks.slice(0, 10)) {
       const value = { incidentId: id, taskId: t.id, version: t.version };
       blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*${escape(t.title)}*\n${t.status} | owner: ${escape(t.owner?.name ?? 'UNASSIGNED')}${t.blockedReason ? `\n${escape(t.blockedReason)}` : ''}` } });

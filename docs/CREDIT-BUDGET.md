@@ -41,6 +41,8 @@ can spend credits outside this ledger, so reconcile with the provider dashboard.
 - Prompts are size-bounded; model responses request at most 1,000 output tokens.
 - No automatic model retry after provider errors. Failed work remains visible.
 - `/api/usage` exposes consumed calls, reported cost and accounted cost separately.
+- Optional image inspection shares this same allowance. It is disabled by default,
+  cached per stored image, and limited to 400 output tokens. Never enable it just for animation.
 
 **This is not a guaranteed dollar billing cap.** A selected model's actual request cost
 can exceed the reservation. Set a provider-side key spending limit as well and use a
