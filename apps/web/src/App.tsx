@@ -514,6 +514,10 @@ export default function App() {
           <span className="brand-caption">THE AGENT WORKSPACE</span>
         </a>
         <div className="topbar-right">
+          <nav className="topbar-links" aria-label="Project pages">
+            <a href="#system-design">System design</a>
+            <a href="#presentation">Presentation</a>
+          </nav>
           <span
             className={`environment ${live && snapshot.mode === "live" ? "is-live" : ""}`}
           >

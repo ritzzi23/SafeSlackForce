@@ -10,6 +10,8 @@ import { FixtureChannel } from './notifications.js';
 import type { Media } from './media.js';
 import { officeCategory } from './office.js';
 import { COPILOT_ENDPOINT, copilotHandler } from './copilot.js';
+/** Paired dashboards stay signed in for a week; restarts keep sessions (see below). */
+const SESSION_MS = 7 * 24 * 3600000;
 type SavedRequest = QuestionResult & { incidentId: string; agentId: string; text: string };
 export function createHttp(domain: Incidents, agents: Agents, budget: Budget, research: Research, media?: Media) {
   const app = express();
@@ -41,8 +43,8 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   app.post('/api/session', (req, res) => {
     const token = typeof req.body?.token === 'string' ? req.body.token : '';
     if (!equal(token, domain.config.token)) { res.status(401).json({ error: 'Invalid pairing token' }); return; }
-    const session = randomBytes(32).toString('hex'); sessions.set(session, Date.now() + 8 * 3600000);
-    res.cookie('incidentos_session', session, { httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: 8 * 3600000 });
+    const session = randomBytes(32).toString('hex'); sessions.set(session, Date.now() + SESSION_MS);
+    res.cookie('incidentos_session', session, { httpOnly: true, sameSite: 'strict', secure: req.secure, maxAge: SESSION_MS });
     res.json({ paired: true, role: 'demo-coordinator', mode: domain.config.mode });
   });
   app.use('/api', (req, res, next) => {

@@ -20,17 +20,18 @@ a physical action actually happened.
 3. [The agents](#the-agents)
 4. [Emergency call agent](#emergency-call-agent)
 5. [Incident copilot (CopilotKit)](#incident-copilot-copilotkit)
-6. [Architecture](#architecture)
-7. [Safety and reliability](#safety-and-reliability)
-8. [Run it locally](#run-it-locally)
-9. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
-10. [Configuration](#configuration)
-11. [Hosting](#hosting)
-12. [API reference](#api-reference)
-13. [Project structure](#project-structure)
-14. [Testing](#testing)
-15. [Built with](#built-with)
-16. [Hackathon note](#hackathon-note)
+6. [System design and presentation pages](#system-design-and-presentation-pages)
+7. [Architecture](#architecture)
+8. [Safety and reliability](#safety-and-reliability)
+9. [Run it locally](#run-it-locally)
+10. [Connect it to Slack (live mode)](#connect-it-to-slack-live-mode)
+11. [Configuration](#configuration)
+12. [Hosting](#hosting)
+13. [API reference](#api-reference)
+14. [Project structure](#project-structure)
+15. [Testing](#testing)
+16. [Built with](#built-with)
+17. [Hackathon note](#hackathon-note)
 
 ---
 
@@ -115,6 +116,17 @@ dashboard is paired with a live or fixture backend.
 Try: *"What is blocked right now?"*, *"Show me the Evidence desk"*, or
 *"Ask Records to prepare the handoff report."*
 
+## System design and presentation pages
+
+Two pages inside the dashboard, linked from the header. They load without pairing, so they also
+work on a hosted Vercel build.
+
+- **System design** (`/#system-design`): the high-level architecture diagram, the incident lifecycle,
+  the agent and tool table, and a register of 18 design decisions. Each decision says what it
+  replaced, why it won, and where it lives in the code.
+- **Presentation** (`/#presentation`): an 11-slide pitch deck. Arrow keys move, **F** goes fullscreen,
+  Home and End jump. Every number on the slides is read off the build (`apps/web/src/explain/facts.ts`).
+
 ## Architecture
 
 ```mermaid
@@ -178,7 +190,7 @@ flowchart LR
 - **Roster limits.** Notifications can only go to the configured lead, backup and supervisors.
 - **Spending caps.** OpenRouter and Exa usage is reserved before each call and capped by call count
   and dollar budget across the deployment.
-- **Dashboard access.** The browser pairs with a secret token and gets an 8-hour HTTP-only cookie.
+- **Dashboard access.** The browser pairs with a secret token and gets a 7-day HTTP-only cookie that survives API restarts.
   Cross-origin requests from unlisted origins are rejected.
 - **Synthetic data only** for the demo procedure, roster and office directory.
 
@@ -304,6 +316,7 @@ apps/
       SlackThread.tsx  Thread, evidence, voice and emergency call panels
       EmergencyCall.tsx Emergency call agent
       IncidentCopilot.tsx CopilotKit copilot: readable state, actions, approval card
+      explain/         System design page, presentation deck, shared facts
       IncidentJourney.tsx, ActionReadiness.tsx, OfficeDirectory.tsx
 packages/contracts/    Shared zod schemas
 fixtures/              Slack app manifest, synthetic snapshots and office data

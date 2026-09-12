@@ -2271,3 +2271,9 @@ h1 {
 .copilot-approval p { margin: 0; }
 .copilot-approval-note { color: #59645c; font-size: 12px; }
 .copilot-approval-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Header links to the System design and Presentation pages. */
+.topbar-links { display: flex; gap: 4px; margin-right: 6px; }
+.topbar-links a { padding: 6px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #59645c; text-decoration: none; white-space: nowrap; }
+.topbar-links a:hover { background: #ecebe3; color: var(--ink); }
+@media (max-width: 760px) { .topbar-links { display: none; } }
