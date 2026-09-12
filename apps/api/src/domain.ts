@@ -228,7 +228,7 @@ export class Incidents {
           : t.status === 'acknowledged' || t.status === 'in_progress' ? 'Ownership accepted; completion has not been confirmed.'
           : t.blockedReason || 'Completion has not been confirmed. Delivery receipts alone do not establish acknowledgement or completion.',
         sources: t.sources,
-        notifications: i.notifications.filter(n => n.taskId === t.id).map(n => ({ id: n.id, recipient: n.recipient, state: n.state, acknowledgedBy: n.acknowledgedBy ?? null, receipt: n.messageId ?? null })),
+        notifications: i.notifications.filter(n => n.taskId === t.id).map(n => ({ id: n.id, recipient: n.recipient, state: n.state, acknowledgedBy: n.acknowledgedBy ?? null, receipt: n.messageId ?? null, text: n.text, followup: n.followup, dueAt: n.dueAt, error: n.error ?? null })),
       })),
     };
   }

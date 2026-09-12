@@ -56,6 +56,7 @@ export const readinessSchema = z.object({
     notifications: z.array(z.object({
       id: z.string(), recipient: z.string(), state: z.enum(['pending', 'sending', 'sent', 'failed', 'uncertain']),
       acknowledgedBy: z.string().nullable(), receipt: z.string().nullable(),
+      text: z.string().optional(), followup: z.boolean().optional(), dueAt: z.number().optional(), error: z.string().nullable().optional(),
     })),
   })),
 });

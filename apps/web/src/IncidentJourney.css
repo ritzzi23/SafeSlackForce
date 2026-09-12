@@ -1,0 +1,32 @@
+.incident-journey { margin: 12px 0; padding: 14px; border: 1px solid #cbd6bf; border-radius: 16px; background: #f9fcf4; color: #303d2d; }
+.journey-heading { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 14px; }
+.journey-heading > span { font-size: 9px; letter-spacing: .08em; color: #53624b; }
+.incident-journey ol { display: grid; grid-template-columns: repeat(6,minmax(95px,1fr)); gap: 6px; overflow-x: auto; padding: 10px 0; margin: 0; list-style: none; }
+.journey-stage { border: 1px solid #d2d9cb; border-radius: 10px; padding: 8px; width: 100%; height: 100%; text-align: left; background: white; color: #4c5547; cursor: pointer; }
+.journey-stage strong,.journey-stage small { display: block; }
+.journey-stage strong { font-size: 12px; margin: 5px 0; }
+.journey-stage small { font-size: 10px; line-height: 1.4; }
+.journey-stage.recorded { background: #e5f0da; border-color: #91ab78; }
+.journey-stage.attention,.notification-card.attention { background: #fff5e8; border-color: #b4803e; }
+.journey-number { font-size: 10px; font-weight: 700; }
+.journey-now { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; max-height: 64px; overflow-y: auto; }
+.journey-note { display: block; font-size: 10px; line-height: 1.4; margin-top: 5px; color: #55634d; }
+.notification-counts { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; margin: 16px 0; }
+.notification-counts span { border-radius: 10px; background: #eaf0e2; padding: 10px; font-size: 11px; }
+.notification-counts strong { display: block; font-size: 20px; }
+.notification-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.notification-filters button { padding: 7px 10px; border: 1px solid #b3c2a5; border-radius: 20px; background: white; font: inherit; font-size: 12px; cursor: pointer; }
+.notification-filters button[aria-pressed=true] { background: #344d2b; color: white; }
+.notification-card { padding: 14px; margin: 12px 0; border: 1px solid #c8d2bf; border-radius: 12px; background: #fafcf6; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.notification-card h4 { font-size: 14px; margin: 10px 0; }
+.notification-title { display: flex; justify-content: space-between; gap: 10px; }
+.notification-title > span { font-size: 11px; font-weight: 700; }
+.notification-response { border-left: 3px solid #819c68; padding-left: 9px; }
+.notification-card a { display: inline-block; margin-top: 12px; color: #365b25; font-weight: 700; }
+.notification-timeline { list-style: none; padding: 0; }
+.notification-timeline li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #e0e5d9; font-size: 12px; }
+.notification-timeline time { flex: 0 0 72px; color: #637159; }
+.journey-stage:focus-visible,.notification-filters button:focus-visible { outline: 2px solid #365b25; outline-offset: 2px; }
+.mobile-journey { display: none; }
+@media(max-width: 760px) { .mobile-journey { display: block; } }
+@media(max-width: 700px) { .incident-journey { padding: 10px; } .journey-heading { flex-wrap: wrap; } }

@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUp,
   AudioLines,
+  Bell,
   BookOpen,
   Check,
   CheckCheck,
@@ -46,6 +47,7 @@ import { api, ApiError, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
 import ActionReadiness from "./ActionReadiness";
 import OfficeDirectory from "./OfficeDirectory";
+import { IncidentJourney, NotificationInbox, useJourneyEvidence } from "./IncidentJourney";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 type Chat = {
@@ -101,7 +103,7 @@ export default function App() {
     demoSnapshot(1),
   );
   const [selected, setSelected] = useState<AgentId>("commander");
-  const [tab, setTab] = useState<"chat" | "tasks" | "activity" | "thread" | "office">(
+  const [tab, setTab] = useState<"chat" | "tasks" | "activity" | "thread" | "office" | "notifications">(
     "chat",
   );
   const [roomFocus, setRoomFocus] = useState(true);
@@ -109,6 +111,7 @@ export default function App() {
   const [playing, setPlaying] = useState(false);
   const [live, setLive] = useState(false);
   const [transport, setTransport] = useState("disconnected");
+  const journeyEvidence = useJourneyEvidence(snapshot, live);
   const [handoff, setHandoff] = useState<StreamUpdate["handoff"]>();
   const [zoom, setZoom] = useState(1);
   const [reset, setReset] = useState(0);
@@ -560,6 +563,7 @@ export default function App() {
             <AudioLines size={21} />
           </button>
           <button className={`rail-button ${tab === "office" ? "current" : ""}`} aria-label="Office reference database" title="Office reference database" onClick={() => setTab("office")}><BookOpen size={21} /></button>
+          <button className={`rail-button ${tab === "notifications" ? "current" : ""}`} aria-label="Notifications and responses" title="Notifications and responses" onClick={() => setTab("notifications")}><Bell size={21} />{journeyEvidence?.data?.tasks.some(t => t.notifications.some(n => !n.acknowledgedBy || ['failed', 'uncertain'].includes(n.state))) && <i />}</button>
           <span className="rail-line" />
           {agentIds.map((id) => (
             <button
@@ -651,6 +655,7 @@ export default function App() {
               </button>
             )}
           </div>
+          <IncidentJourney snapshot={snapshot} evidence={journeyEvidence?.data} connected={live} transport={transport} onOpen={setTab} />
           <div className="scene-area">
             <div className="scene-caption">
               <span className="tiny-square" /> WAREHOUSE OPERATIONS
@@ -921,7 +926,8 @@ export default function App() {
             </div>
           )}
           <div className="panel-content" role="tabpanel">
-            {tab === "office" ? <OfficeDirectory connected={live} /> : tab === "chat" ? (
+            <div className="mobile-journey"><IncidentJourney snapshot={snapshot} evidence={journeyEvidence?.data} connected={live} transport={transport} onOpen={setTab} /></div>
+            {tab === "notifications" ? <NotificationInbox key={snapshot.incidentId} snapshot={snapshot} data={journeyEvidence?.data} error={journeyEvidence?.error} connected={live} /> : tab === "office" ? <OfficeDirectory connected={live} /> : tab === "chat" ? (
               <>
                 <div className="conversation-date">
                   <span />
