@@ -78,9 +78,9 @@ test('handoff requires current report; closure remains blocked by critical open 
   s.domain.report(s.id, 'Review outstanding work', ['1.000001']);
   s.domain.agent(s.id, 'records', 'done', 'Report saved'); // presentation events must not stale the report
   s.domain.handoff(s.id, 'USUPERVISOR', s.domain.get(s.id).snapshot.version);
-  assert.throws(() => s.domain.close(s.id, 'USUPERVISOR', s.domain.get(s.id).snapshot.version), /Critical tasks/);
+  assert.throws(() => s.domain.close(s.id, 'USUPERVISOR', s.domain.get(s.id).snapshot.version, 'Checked closure requirements'), /Critical tasks/);
   s.domain.addMessage(s.id, { ts: '3.000001', user: 'UWITNESS', text: 'New observation' });
-  assert.throws(() => s.domain.handoff(s.id, 'USUPERVISOR', s.domain.get(s.id).snapshot.version), /Report is stale/);
+  assert.throws(() => s.domain.handoff(s.id, 'USUPERVISOR', s.domain.get(s.id).snapshot.version), /current handoff report/);
   s.store.close();
 });
 test('SQLite restores records, ordered event snapshots and budget after restart', async () => {
@@ -102,7 +102,7 @@ test('model tool permissions reject fabricated tools and report actual failure t
     sawError = messages.some(m => m.role === 'tool' && m.content?.includes('not allowed'));
     return { content: 'No notification was sent.' };
   } };
-  const s = await setup(model); await s.agents.run(s.id, 'records', 'Summarize');
+  const s = await setup(model); await assert.rejects(s.agents.run(s.id, 'records', 'Summarize'), /did not inspect/);
   assert.equal(sawError, true); assert.equal(s.channel.sent.length, 0); s.store.close();
 });
 test('HTTP pairing, persisted fixture workflow, stale requests and private report access', async () => {
@@ -115,7 +115,7 @@ test('HTTP pairing, persisted fixture workflow, stale requests and private repor
     const pair = await fetch(`${base}/api/session`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: config().token }) });
     assert.equal(pair.status, 200); const cookie = pair.headers.get('set-cookie')!.split(';')[0];
     const headers = { Cookie: cookie, 'Content-Type': 'application/json' };
-    const created = await fetch(`${base}/api/demo/incidents`, { method: 'POST', headers, body: JSON.stringify({ text: 'Forklift incident', ts: '4.000001' }) });
+    const created = await fetch(`${base}/api/demo/incidents`, { method: 'POST', headers, body: JSON.stringify({ text: 'Forklift incident at Dock B', ts: '4.000001' }) });
     assert.equal(created.status, 201); const snapshot = snapshotSchema.parse(await created.json());
     assert.equal(snapshot.mode, 'fixture'); assert.equal(snapshot.tasks.length, 3);
     const stale = await fetch(`${base}/api/incidents/${snapshot.incidentId}/agents/commander/questions`, { method: 'POST', headers, body: JSON.stringify({ requestId: 'request-test-1', text: 'Status?', expectedVersion: 0 }) });

@@ -6,13 +6,14 @@ import { Store } from './store.js';
 
 export class DomainError extends Error { constructor(public status: number, message: string) { super(message); } }
 export const requireThat = (condition: unknown, status: number, message: string): asserts condition => { if (!condition) throw new DomainError(status, message); };
-export type Message = { id: string; text: string; author: string; timestamp: string; deleted?: boolean; source: SourceRef };
-export type Notification = { id: string; taskId: string; recipient: string; text: string; state: 'pending' | 'sending' | 'sent' | 'failed' | 'uncertain'; messageId?: string; error?: string; dueAt: number; followup: boolean; acknowledgedBy?: string };
+export type Message = { id: string; text: string; author: string; timestamp: string; deleted?: boolean; source: SourceRef; revision?: string; origin?: 'slack' | 'confirmed_transcript' };
+export type Attachment = { id: string; messageId: string; name: string; mimetype: string; size: number; source: SourceRef; removed?: boolean; observation?: string };
+export type Notification = { id: string; taskId: string; recipient: string; text: string; state: 'pending' | 'sending' | 'sent' | 'failed' | 'uncertain'; messageId?: string; error?: string; dueAt: number; followup: boolean; acknowledgedBy?: string; attempts?: number };
 export type Fact = { id: string; text: string; sourceIds: string[]; state: 'reported' | 'disputed' | 'confirmed' };
 export type Incident = {
   snapshot: IncidentSnapshot; team: string; channel: string; rootTs: string;
   messages: Message[]; facts: Fact[]; notifications: Notification[];
-  criticalTaskIds: string[]; acceptedBy?: string;
+  criticalTaskIds: string[]; acceptedBy?: string; attachments?: Attachment[]; locationSourceIds?: string[]; demoArchived?: boolean;
 };
 export const procedure = {
   id: 'warehouse-coordination-v1', version: 1, label: 'Synthetic warehouse coordination procedure',
@@ -27,13 +28,15 @@ export class Incidents {
   bus = new EventEmitter();
   connection: IncidentSnapshot['slackConnection'] = 'disconnected';
   constructor(public store: Store, public config: Config) { this.bus.setMaxListeners(100); }
-  all() { return this.store.list<Incident>('incident'); }
+  all() { return this.store.list<Incident>('incident').filter(i => !i.demoArchived); }
   get(id: string) { const i = this.store.get<Incident>(id); if (!i || !i.snapshot) throw new DomainError(404, 'Incident not found'); return i; }
   find(team: string, channel: string, ts: string) { return this.all().find(i => i.team === team && i.channel === channel && i.rootTs === ts); }
   source(incident: Incident, ids: string[]): SourceRef[] {
     const refs = new Map<string, SourceRef>(incident.messages.filter(m => !m.deleted).map(m => [m.source.id, m.source]));
     refs.set(procedure.id, { id: procedure.id, kind: 'procedure', label: procedure.label });
     for (const a of incident.snapshot.activity) for (const s of a.sources) if (s.kind === 'human_confirmation' || s.kind === 'tool_result') refs.set(s.id, s);
+    for (const file of incident.attachments ?? []) if (!file.removed) refs.set(file.source.id, file.source);
+    for (const file of incident.attachments ?? []) if (file.removed) refs.delete(file.source.id);
     return ids.map(id => { const source = refs.get(id); if (!source) throw new DomainError(400, `Unknown or removed source: ${id}`); return source; });
   }
   create(input: { team: string; channel: string; ts: string; user: string; text: string }) {
@@ -69,17 +72,25 @@ export class Incidents {
     const i = this.get(id); if (expected !== undefined && expected !== i.snapshot.version) throw new DomainError(409, 'Incident changed; refresh and reconsider the action');
     const refs = fn(i); this.commit(i, text, refs || []); return this.get(id);
   }
-  addMessage(id: string, input: { ts: string; text: string; user: string; deleted?: boolean }) {
+  addMessage(id: string, input: { ts: string; text: string; user: string; deleted?: boolean; revision?: string; origin?: Message['origin'] }) {
     const current = this.get(id); const old = current.messages.filter(m => m.id === input.ts).at(-1);
+    // Slack events can arrive out of order. An old edit must not restore superseded evidence.
+    if (old?.revision && input.revision && Number(input.revision) <= Number(old.revision)) return false;
     if (old && old.text === input.text && Boolean(old.deleted) === Boolean(input.deleted)) return false;
     this.mutate(id, old ? 'Source message corrected or removed; affected tasks require review' : 'New participant update', i => {
       const previous = i.messages.filter(m => m.id === input.ts).at(-1);
       if (previous) { previous.deleted = true; for (const task of i.snapshot.tasks) if (task.sources.some(s => s.id === previous.source.id)) { task.status = 'needs_review'; task.version++; task.blockedReason = 'Source was corrected or removed'; } }
       const sourceId = old ? `${input.ts}:${randomUUID().slice(0, 8)}` : input.ts;
       const source: SourceRef = { id: sourceId, kind: 'slack_message', label: `${input.user}: ${input.deleted ? 'removed message' : 'update'}`, url: this.slackUrl(i.team, i.channel, input.ts) };
-      i.messages.push({ id: input.ts, text: input.text, author: input.user, timestamp: new Date().toISOString(), deleted: input.deleted, source });
+      i.messages.push({ id: input.ts, text: input.text, author: input.user, timestamp: new Date().toISOString(), deleted: input.deleted, source, revision: input.revision ?? input.ts, origin: input.origin ?? 'slack' });
       if (old) for (const fact of i.facts) if (fact.sourceIds.includes(old.source.id)) fact.state = 'disputed';
-      if (i.snapshot.status === 'handoff_ready') i.snapshot.status = 'coordinating';
+      if (old && i.locationSourceIds?.includes(old.source.id)) { i.snapshot.location = 'Needs review: source corrected'; i.locationSourceIds = []; }
+      if (input.deleted) for (const file of i.attachments ?? []) if (file.messageId === input.ts) {
+        file.removed = true;
+        for (const fact of i.facts) if (fact.sourceIds.includes(file.source.id)) fact.state = 'disputed';
+        for (const task of i.snapshot.tasks) if (task.sources.some(s => s.id === file.source.id)) { task.status = 'needs_review'; task.version++; task.blockedReason = 'Attachment source removed'; }
+      }
+      if (['handoff_ready', 'handed_over', 'closed'].includes(i.snapshot.status)) { i.snapshot.status = 'coordinating'; i.acceptedBy = undefined; }
       return [source];
     }); return true;
   }
@@ -96,7 +107,12 @@ export class Incidents {
     this.commit(i, `Commander delegated: ${task}`, [], { from: 'commander', to: target, taskId: a.currentTaskId });
   }
   applyProcedure(id: string) {
-    const i = this.get(id); const refs = this.source(i, [procedure.id, i.messages[0].source.id]);
+    const i = this.get(id);
+    if (i.snapshot.status === 'closed') throw new DomainError(409, 'Incident is closed');
+    const report = i.messages.find(m => !m.deleted && /\bforklift\b/i.test(m.text) && /\bdock\b/i.test(m.text));
+    if (!report) throw new DomainError(409, 'No matching approved procedure. Ask the site lead; do not invent one.');
+    if (procedure.tasks.every(template => i.snapshot.tasks.some(t => t.id === template.key))) return i.snapshot.tasks;
+    const refs = this.source(i, [procedure.id, report.source.id]);
     for (const template of procedure.tasks) {
       if (i.snapshot.tasks.some(t => t.id === template.key)) continue;
       i.snapshot.tasks.push({ id: template.key, title: template.title, agentId: 'procedure', owner: { slackUserId: this.config.lead, name: this.config.lead }, status: 'assigned', version: 1, blockedReason: null, sources: refs, slackActionUrl: i.snapshot.slackThreadUrl });
@@ -118,6 +134,7 @@ export class Incidents {
       if (action === 'acknowledge') task.owner = { slackUserId: actor, name: actor };
       const source: SourceRef = { id: randomUUID(), label: `${actor}: ${note || action}`, kind: 'human_confirmation' };
       task.sources.push(source);
+      if (i.snapshot.status === 'handoff_ready') i.snapshot.status = 'coordinating';
       for (const n of i.notifications) if (n.taskId === taskId && action !== 'review') n.acknowledgedBy = actor;
       return [source];
     });
@@ -125,7 +142,7 @@ export class Incidents {
   handoff(id: string, actor: string, expected: number) {
     if (!this.config.supervisors.includes(actor)) throw new DomainError(403, 'Supervisor required');
     return this.mutate(id, `Handoff accepted by ${actor}`, i => {
-      if (i.snapshot.status === 'closed') throw new DomainError(409, 'Incident already closed');
+      if (i.snapshot.status !== 'handoff_ready') throw new DomainError(409, 'Generate a current handoff report first');
       const report = i.snapshot.reports.at(-1);
       if (!report) throw new DomainError(409, 'Generate a report first');
       const saved = this.store.get<{ fingerprint: string }>(report.id);
@@ -135,30 +152,38 @@ export class Incidents {
       return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted handoff` }];
     }, expected);
   }
-  close(id: string, actor: string, expected: number) {
+  close(id: string, actor: string, expected: number, note = '') {
     if (!this.config.supervisors.includes(actor)) throw new DomainError(403, 'Supervisor required');
+    if (!note.trim()) throw new DomainError(400, 'Closure confirmation note is required');
     return this.mutate(id, `Incident closed by ${actor}`, i => {
       if (i.snapshot.status !== 'handed_over') throw new DomainError(409, 'Accept the handoff first');
       if (i.snapshot.tasks.some(t => i.criticalTaskIds.includes(t.id) && t.status !== 'completed')) throw new DomainError(409, 'Critical tasks are still open');
       i.snapshot.status = 'closed';
+      return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} closure confirmation: ${note}` }];
     }, expected);
   }
   report(id: string, summary: string, sourceIds: string[]) {
     const i = this.get(id); const refs = this.source(i, sourceIds); const reportId = `report-${randomUUID()}`;
+    if (i.snapshot.status === 'closed') throw new DomainError(409, 'Incident is closed');
     const clean = (s: string) => s.replace(/[\r\n]/g, ' ').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const markdown = [`# ${i.snapshot.incidentId}: Handoff report`, '', `Mode: ${i.snapshot.mode}. Status: ${i.snapshot.status}.`, '', '## Summary', '', clean(summary), '', '## Tasks and owners', '',
       ...i.snapshot.tasks.map(t => `- [${t.status}] ${clean(t.title)} — owner: ${clean(t.owner?.name ?? 'UNASSIGNED')}${t.blockedReason ? `; blocker: ${clean(t.blockedReason)}` : ''}`), '', '## Reported facts', '',
-      ...i.facts.map(f => `- [${f.state}] ${clean(f.text)} (sources: ${f.sourceIds.join(', ')})`), '', '## Timeline', '',
+      ...i.facts.map(f => `- [${f.state}] ${clean(f.text)} (sources: ${f.sourceIds.join(', ')})`), '', '## Source messages, including corrections', '',
+      ...i.messages.map(m => `- ${m.source.id} [${m.deleted ? 'superseded or removed' : 'current'}] ${clean(m.author)}: ${clean(m.text)}`), '', '## Attachments', '',
+      ...(i.attachments ?? []).map(a => `- ${a.source.id}: ${clean(a.name)} [${a.removed ? 'removed' : 'available'}]. ${clean(a.observation ?? 'Not analyzed; no conclusions inferred.')}`), '', '## Notification receipts', '',
+      ...i.notifications.map(n => `- ${n.id}: ${n.state}, recipient ${n.recipient}, acknowledgement ${n.acknowledgedBy ?? 'not received'}, receipt ${n.messageId ?? 'none'}`), '', '## Timeline', '',
       ...i.snapshot.activity.map(a => `- ${a.timestamp}: ${clean(a.text)}${a.sources.length ? ` [${a.sources.map(s => s.id).join(', ')}]` : ''}`), '', '## Summary source references', '',
       ...refs.map(r => `- ${r.id}: ${clean(r.label)}${r.url ? ` (${r.url})` : ''}`), '', 'This report records coordination and reported confirmations; it does not certify site safety.', ''].join('\n');
     this.store.transaction(() => this.store.put(reportId, 'report', { incidentId: id, markdown, fingerprint: this.fingerprint(i) }));
     i.snapshot.reports.push({ id: reportId, version: i.snapshot.reports.length + 1, title: `Handoff report ${i.snapshot.reports.length + 1}`, downloadUrl: `/api/incidents/${id}/reports/${reportId}` });
+    i.snapshot.status = 'handoff_ready';
     this.commit(i, 'Saved sourced handoff report', refs); return { reportId, markdown };
   }
   setConnection(state: IncidentSnapshot['slackConnection']) {
+    if (this.connection === state) return;
     this.connection = state; for (const i of this.all()) this.commit(i, `Slack ${state}`);
   }
   private fingerprint(i: Incident) {
-    return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, location: i.snapshot.location })).digest('hex');
+    return createHash('sha256').update(JSON.stringify({ messages: i.messages, tasks: i.snapshot.tasks, facts: i.facts, notifications: i.notifications, attachments: i.attachments, location: i.snapshot.location })).digest('hex');
   }
 }

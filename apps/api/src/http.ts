@@ -7,8 +7,9 @@ import { Budget } from './budget.js';
 import { DomainError, Incidents } from './domain.js';
 import { Research, researchTopic } from './research.js';
 import { FixtureChannel } from './notifications.js';
+import type { Media } from './media.js';
 type SavedRequest = QuestionResult & { incidentId: string; agentId: string; text: string };
-export function createHttp(domain: Incidents, agents: Agents, budget: Budget, research: Research) {
+export function createHttp(domain: Incidents, agents: Agents, budget: Budget, research: Research, media?: Media) {
   const app = express(); const sessions = new Map<string, number>();
   app.disable('x-powered-by'); app.use(express.json({ limit: '64kb' }));
   app.use((req, res, next) => {
@@ -40,28 +41,35 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   const wrap = (handler: (req: express.Request<Record<string, string>>, res: express.Response) => unknown | Promise<unknown>): express.RequestHandler<Record<string, string>> => (req, res, next) => { Promise.resolve().then(() => handler(req, res)).catch(next); };
   app.get('/api/incidents', (_req, res) => res.json(domain.all().map(i => ({ incidentId: i.snapshot.incidentId, title: i.snapshot.title, status: i.snapshot.status }))));
   app.get('/api/incidents/:id', wrap((req, res) => res.json(domain.get(req.params.id).snapshot)));
-  app.get('/api/incidents/:id/details', wrap((req, res) => { const i = domain.get(req.params.id); return res.json({ facts: i.facts, messages: i.messages, notifications: i.notifications }); }));
+  app.get('/api/incidents/:id/details', wrap((req, res) => { const i = domain.get(req.params.id); return res.json({ facts: i.facts, messages: i.messages, notifications: i.notifications, attachments: i.attachments ?? [], summaryDelivery: domain.store.get(`summary-${req.params.id}`) ?? null }); }));
+  app.get('/api/incidents/:id/attachments/:fileId', wrap((req, res) => {
+    if (!media) throw new DomainError(404, 'Media not configured');
+    const { file, bytes } = media.get(req.params.id, req.params.fileId);
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    return res.type(file.mimetype).send(bytes);
+  }));
   app.get('/api/usage', (_req, res) => res.json({ providers: budget.summary(), limits: { modelCalls: domain.config.callLimit, modelAccountedUsd: domain.config.modelBudget, callReservationUsd: domain.config.callReserve, exaCalls: domain.config.exaCallLimit }, note: 'Unknown costs retain reservations. Provider-side key limits are required for a strict billing cap.' }));
   app.post('/api/research', wrap(async (req, res) => res.json(await research.search(researchTopic.parse(req.body.topic)))));
   app.get('/api/incidents/:id/events', wrap((req, res) => {
-    const id = req.params.id; domain.get(id);
+    const id = req.params.id; const snapshot = domain.get(id).snapshot;
     const raw = req.query.after ?? String(req.headers['last-event-id'] ?? '').split(':').at(-1) ?? 0;
     const after = z.coerce.number().int().nonnegative().parse(raw || 0);
     res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Connection', 'keep-alive'); res.setHeader('X-Accel-Buffering', 'no'); res.flushHeaders();
-    let cursor = after;
+    let cursor = after > snapshot.cursor ? 0 : after;
     const send = (event: StreamUpdate) => {
       if (event.snapshot.incidentId !== id || event.cursor <= cursor) return;
       cursor = event.cursor; res.write(`id: ${event.eventId}\nevent: snapshot.updated\ndata: ${JSON.stringify(event)}\n\n`);
     };
     // Replay and listener installation are synchronous in this process, with no await gap.
-    for (const event of domain.store.events(id, after)) send(event);
+    if (after > snapshot.cursor) send({ eventId: `${id}:${snapshot.cursor}`, cursor: snapshot.cursor, kind: 'snapshot.updated', snapshot });
+    else for (const event of domain.store.events(id, after)) send(event);
     domain.bus.on('update', send);
     const timer = setInterval(() => {
       const session = sessionOf(req);
       if (session && (sessions.get(session) ?? 0) <= Date.now()) { res.end(); return; }
       res.write(': heartbeat\n\n');
     }, 15000);
-    req.on('close', () => { clearInterval(timer); domain.bus.off('update', send); });
+    res.on('close', () => { clearInterval(timer); domain.bus.off('update', send); });
   }));
   app.post('/api/incidents/:id/agents/:agentId/questions', wrap((req, res) => {
     const id = req.params.id; const agent = agentIdSchema.parse(req.params.agentId); const input = questionSchema.parse(req.body);
@@ -79,7 +87,9 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
         domain.mutate(id, `Dashboard question to ${agent}: ${input.text}`, () => [{ id: receipt, label: 'Dashboard question relayed by bot', kind: 'tool_result' }]);
         record.answer = await agents.run(id, agent, input.text); record.status = 'done';
         record.sources = domain.get(id).snapshot.agents.find(a => a.id === agent)!.sources;
-        await agents.notifications.channel.send(domain.get(id), `[${agent}] ${record.answer.replace(/[<>]/g, '').slice(0, 2500)}`);
+        if (domain.get(id).snapshot.agents.find(a => a.id === agent)!.status === 'failed') { record.status = 'failed'; record.error = 'Some agent tools failed; inspect the partial answer and activity'; }
+        const answerReceipt = await agents.notifications.channel.send(domain.get(id), `[${agent}] ${record.answer.replace(/[<>]/g, '').slice(0, 2500)}`);
+        domain.mutate(id, `${agent} answered dashboard question: ${record.answer}`, () => [...(record.sources ?? []), { id: answerReceipt, kind: 'tool_result', label: 'Agent answer delivered to Slack' }]);
       } catch { record.status = 'failed'; record.error = 'Agent or Slack delivery failed; inspect incident activity.'; }
       domain.store.transaction(() => domain.store.put(key, 'request', record));
     }).catch(() => {});
@@ -88,12 +98,48 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   app.get('/api/requests/:requestId', wrap((req, res) => {
     const r = domain.store.get<SavedRequest>(`request-${req.params.requestId}`); if (!r) throw new DomainError(404, 'Request not found'); return res.json(r);
   }));
+  app.post('/api/incidents/:id/transcripts', wrap((req, res) => {
+    const id = req.params.id;
+    const input = questionSchema.extend({ confirmed: z.literal(true) }).parse(req.body);
+    const key = `transcript-${input.requestId}`;
+    const prior = domain.store.get<{ incidentId: string; text: string; status: string }>(key);
+    if (prior) {
+      if (prior.incidentId !== id || prior.text !== input.text) throw new DomainError(409, 'Transcript request ID already used');
+      return res.status(prior.status === 'pending' ? 202 : 200).json(prior);
+    }
+    const i = domain.get(id);
+    if (i.snapshot.status === 'closed' || i.demoArchived) throw new DomainError(409, 'Incident closed or archived');
+    if (i.snapshot.version !== input.expectedVersion) throw new DomainError(409, 'Incident changed; review transcript again');
+    const record = { incidentId: id, text: input.text, status: 'pending', error: '', requestId: input.requestId };
+    domain.store.transaction(() => domain.store.put(key, 'transcript', record));
+    void agents.enqueue(id, async () => {
+      try {
+        if (domain.get(id).snapshot.version !== input.expectedVersion) throw new DomainError(409, 'Incident changed before transcript dispatch; review again');
+        const receipt = await agents.notifications.channel.send(domain.get(id), `[Dashboard coordinator: reviewed voice transcript]\n${input.text.replace(/[<>]/g, '')}`);
+        domain.addMessage(id, { ts: receipt, text: input.text, user: 'demo-coordinator', origin: 'confirmed_transcript' });
+        record.status = 'delivered'; domain.store.transaction(() => domain.store.put(key, 'transcript', record));
+        await agents.run(id, 'commander', 'A coordinator confirmed and relayed a transcript into Slack. Review it as reported information, not confirmation of completed physical actions.');
+      } catch (e) { record.status = record.status === 'delivered' ? 'delivered_agent_failed' : e instanceof DomainError && e.status === 409 ? 'stale' : 'uncertain'; record.error = 'Inspect incident and Slack before resubmitting; no automatic retry'; }
+      domain.store.transaction(() => domain.store.put(key, 'transcript', record));
+    }).catch(() => {});
+    return res.status(202).json(record);
+  }));
+  app.get('/api/transcripts/:requestId', wrap((req, res) => {
+    const value = domain.store.get(`transcript-${req.params.requestId}`); if (!value) throw new DomainError(404, 'Transcript not found'); return res.json(value);
+  }));
   app.get('/api/incidents/:id/reports/:reportId', wrap((req, res) => {
     const r = domain.store.get<{ incidentId: string; markdown: string }>(req.params.reportId);
     if (!r || r.incidentId !== req.params.id) throw new DomainError(404, 'Report not found');
     res.setHeader('Content-Disposition', 'attachment; filename="incident-handoff.md"'); return res.type('text/markdown').send(r.markdown);
   }));
   if (domain.config.mode === 'fixture') {
+    app.post('/api/demo/reset', wrap((req, res) => {
+      z.object({ confirmation: z.literal('ARCHIVE FIXTURE INCIDENTS') }).parse(req.body);
+      if (agents.busy) throw new DomainError(409, 'Wait for queued agents before resetting');
+      const ids = domain.all().filter(i => i.snapshot.mode === 'fixture').map(i => i.snapshot.incidentId);
+      for (const id of ids) domain.mutate(id, 'Fixture archived for fresh rehearsal; history and budget preserved', i => { i.demoArchived = true; });
+      return res.json({ archived: ids, usagePreserved: true });
+    }));
     app.post('/api/demo/incidents', wrap(async (req, res) => {
       const input = z.object({ text: z.string().min(1).max(4000), ts: z.string().optional() }).parse(req.body);
       const i = domain.create({ team: domain.config.team, channel: domain.config.channel, ts: input.ts ?? `${Date.now()}.000001`, user: 'UREPORTER', text: input.text });
@@ -116,6 +162,8 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   app.use((error: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (res.headersSent) { res.end(); return; }
     if (error instanceof z.ZodError) { res.status(400).json({ error: 'Invalid request', issues: error.issues }); return; }
+    if (error.type === 'entity.parse.failed') { res.status(400).json({ error: 'Invalid JSON' }); return; }
+    if (error.type === 'entity.too.large') { res.status(413).json({ error: 'Request body too large' }); return; }
     res.status(error instanceof DomainError ? error.status : 500).json({ error: error instanceof DomainError ? error.message : 'Request failed' });
   });
   return app;
