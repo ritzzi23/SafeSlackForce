@@ -1384,6 +1384,20 @@ h1 {
   color: #ae805b;
   line-height: 1.8;
 }
+
+.connection-status {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid #d8dfd0;
+  border-radius: 14px;
+  background: #f3f6ee;
+  color: #3d5039;
+}
+
+.connection-status p {
+  margin: 10px 0 0;
+  line-height: 1.6;
+}
 .modal ul {
   padding-left: 16px;
   font-size: 11px;

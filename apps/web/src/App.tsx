@@ -408,11 +408,6 @@ export default function App() {
       const list = await api.incidents();
       setIncidents(list);
       if (!list.length) {
-        setError(
-          health.mode === "fixture"
-            ? "Paired to the offline backend. Create a fixture incident below; no Slack messages or paid model calls will be made."
-            : "Connected, but no incidents exist yet. Report an incident in Slack, then refresh the incident list.",
-        );
         return;
       }
       const next = await api.snapshot(list[0].incidentId);
@@ -446,11 +441,9 @@ export default function App() {
         setPlaying(false);
         setChats([]);
         setModal(null);
-      } else
-        setError(
-          health.mode === "fixture" ? "No fixture incidents yet. Create an offline rehearsal below." : "No incidents yet. Create one in the configured Slack channel.",
-        );
+      }
     } catch (e) {
+      if (e instanceof ApiError && e.status === 401) setPaired(false);
       setError(e instanceof Error ? e.message : "Unable to refresh.");
     } finally {
       setConnecting(false);
@@ -1208,17 +1201,27 @@ export default function App() {
             </span>
             <h2 id="modal-title">
               {modal === "connect"
-                ? "Connect your workspace"
+                ? paired ? "Workspace connected" : "Connect your workspace"
                 : "One incident. One shared picture."}
             </h2>
             {modal === "connect" ? (
               <>
                 <p>
-                  Pair with Om’s backend to receive agent activity, send
-                  questions, and open the incident’s Slack thread.
+                  {paired
+                    ? "Your browser is paired. You do not need to enter the token again."
+                    : "Connect your workspace to receive agent activity, ask questions, and follow the incident’s Slack thread."}
                 </p>
                 {backendMode === "fixture" && <p className="field-hint">Offline backend: persisted fixture workflow only. Slack delivery and model inference are disabled until live mode is configured.</p>}
-                <form
+                {paired && !incidents.length && (
+                  <div className="connection-status" role="status">
+                    <strong>{backendMode === "fixture" ? "Ready for an offline rehearsal" : "Waiting for your first Slack incident"}</strong>
+                    <p>{backendMode === "fixture"
+                      ? "Create a rehearsal below to see persisted agent activity in the office."
+                      : "Mention the bot in your configured Slack channel with a clearly labelled synthetic incident. Then refresh incidents here to load the live office."}</p>
+                    <p>The office behind this window is still the scripted preview.</p>
+                  </div>
+                )}
+                {!paired && <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     void connect();
@@ -1235,14 +1238,8 @@ export default function App() {
                     placeholder="Enter your backend pairing token"
                   />
                   <span className="field-hint">
-                    The frontend proxies /api to localhost:4100. Your token is
-                    exchanged for a session cookie.
+                    Enter DASHBOARD_TOKEN from your private .env file. Pairing is saved for this browser session.
                   </span>
-                  {error && (
-                    <div role="alert" className="modal-error">
-                      {error}
-                    </div>
-                  )}
                   <button
                     className="primary-button"
                     disabled={!token || connecting}
@@ -1254,13 +1251,14 @@ export default function App() {
                     )}
                     Pair workspace
                   </button>
-                </form>
+                </form>}
+                {error && <div role="alert" className="modal-error">{error}</div>}
                 <button
                   className="text-button"
                   disabled={connecting}
                   onClick={() => void refreshIncidents()}
                 >
-                  Already paired? Refresh incidents <RotateCcw size={13} />
+                  {paired ? "Refresh incidents" : "Already paired? Refresh incidents"} <RotateCcw size={13} />
                 </button>
                 {paired && backendMode === "fixture" && <button className="primary-button" disabled={connecting} onClick={() => void createFixture()}>Create offline rehearsal</button>}
               </>
