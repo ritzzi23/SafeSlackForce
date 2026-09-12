@@ -1,0 +1,10 @@
+.office-directory { min-width: 0; }
+.office-directory > label { display: block; margin: 14px 0; font-size: 13px; font-weight: 600; }
+.office-directory input, .office-directory select { display: block; box-sizing: border-box; width: 100%; margin-top: 6px; padding: 10px 12px; border: 1px solid #aebba2; border-radius: 9px; color: #303b30; background: #fafcf6; font: inherit; }
+.office-directory input:focus-visible, .office-directory select:focus-visible, .office-directory summary:focus-visible { outline: 2px solid #4d6c3e; outline-offset: 3px; }
+.office-directory summary { cursor: pointer; font-weight: 600; line-height: 1.5; }
+.office-directory .task-card { overflow-wrap: anywhere; }
+.office-directory dl { font-size: 13px; line-height: 1.6; }
+.office-directory dt { margin-top: 12px; }
+.office-directory dd { margin: 4px 0 0; }
+.office-directory ul { padding-left: 20px; }

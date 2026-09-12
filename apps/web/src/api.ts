@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   agentIdSchema,
+  readinessSchema,
   snapshotSchema,
   sourceRefSchema,
   type AgentId,
@@ -29,6 +30,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return r.json();
 }
 export const api = {
+  office: async (category: string, query: string, signal?: AbortSignal) => z.object({
+    synthetic: z.literal(true), total: z.number(),
+    records: z.array(z.object({ id: z.string(), title: z.string(), category: z.string(), version: z.number(), details: z.record(z.union([z.string(), z.array(z.string())])), references: z.array(z.string()) })),
+  }).parse(await request(`/api/office/records?${new URLSearchParams({ category, query, limit: '20' })}`, { signal })),
+  readiness: async (id: string, signal?: AbortSignal) => readinessSchema.parse(await request(`/api/incidents/${encodeURIComponent(id)}/readiness`, { signal })),
   transcript: (id: string, text: string, expectedVersion: number, requestId: string) =>
     request(`/api/incidents/${encodeURIComponent(id)}/transcripts`, { method: "POST", body: JSON.stringify({ text, expectedVersion, requestId, confirmed: true }) }),
   transcriptStatus: (requestId: string) => request<{ status: string; error?: string }>(`/api/transcripts/${encodeURIComponent(requestId)}`),

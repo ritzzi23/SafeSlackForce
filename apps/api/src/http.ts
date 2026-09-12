@@ -8,6 +8,7 @@ import { DomainError, Incidents } from './domain.js';
 import { Research, researchTopic } from './research.js';
 import { FixtureChannel } from './notifications.js';
 import type { Media } from './media.js';
+import { officeCategory } from './office.js';
 type SavedRequest = QuestionResult & { incidentId: string; agentId: string; text: string };
 export function createHttp(domain: Incidents, agents: Agents, budget: Budget, research: Research, media?: Media) {
   const app = express(); const sessions = new Map<string, number>();
@@ -40,7 +41,17 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   app.post('/api/logout', (req, res) => { const session = sessionOf(req); if (session) sessions.delete(session); res.clearCookie('incidentos_session'); res.json({ ok: true }); });
   const wrap = (handler: (req: express.Request<Record<string, string>>, res: express.Response) => unknown | Promise<unknown>): express.RequestHandler<Record<string, string>> => (req, res, next) => { Promise.resolve().then(() => handler(req, res)).catch(next); };
   app.get('/api/incidents', (_req, res) => res.json(domain.all().map(i => ({ incidentId: i.snapshot.incidentId, title: i.snapshot.title, status: i.snapshot.status }))));
+  app.get('/api/office', wrap((_req, res) => {
+    if (!domain.office) throw new DomainError(503, 'Office demo database is disabled. Seed it and enable OFFICE_DEMO_ENABLED.');
+    return res.json(domain.office.summary());
+  }));
+  app.get('/api/office/records', wrap((req, res) => {
+    if (!domain.office) throw new DomainError(503, 'Office demo database is disabled.');
+    const query = z.object({ category: officeCategory.optional(), query: z.string().max(120).optional(), limit: z.coerce.number().int().min(1).max(20).optional() }).strict().parse(req.query);
+    return res.json(domain.office.search(query));
+  }));
   app.get('/api/incidents/:id', wrap((req, res) => res.json(domain.get(req.params.id).snapshot)));
+  app.get('/api/incidents/:id/readiness', wrap((req, res) => res.json(domain.readiness(req.params.id))));
   app.get('/api/incidents/:id/details', wrap((req, res) => { const i = domain.get(req.params.id); return res.json({ facts: i.facts, messages: i.messages, notifications: i.notifications, attachments: i.attachments ?? [], summaryDelivery: domain.store.get(`summary-${req.params.id}`) ?? null }); }));
   app.get('/api/incidents/:id/attachments/:fileId', wrap((req, res) => {
     if (!media) throw new DomainError(404, 'Media not configured');

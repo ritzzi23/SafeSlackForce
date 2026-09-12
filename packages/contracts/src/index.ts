@@ -43,3 +43,20 @@ export const questionSchema = z.object({
   requestId: z.string().min(8).max(100), text: z.string().trim().min(1).max(4000), expectedVersion: z.number().int().nonnegative(),
 });
 export type QuestionResult = { requestId: string; status: 'pending' | 'done' | 'failed'; answer?: string; error?: string; sources?: SourceRef[] };
+const readinessGateSchema = z.object({
+  state: z.enum(['pending', 'done']), requirement: z.string(),
+  blockers: z.array(z.object({ code: z.string(), message: z.string(), taskIds: z.array(z.string()) })),
+});
+export const readinessSchema = z.object({
+  incidentId: z.string(), version: z.number().int(),
+  handoff: readinessGateSchema, closure: readinessGateSchema,
+  tasks: z.array(z.object({
+    taskId: z.string(), title: z.string(), status: taskStatusSchema, owner: z.string().nullable(),
+    explanation: z.string(), sources: z.array(sourceRefSchema),
+    notifications: z.array(z.object({
+      id: z.string(), recipient: z.string(), state: z.enum(['pending', 'sending', 'sent', 'failed', 'uncertain']),
+      acknowledgedBy: z.string().nullable(), receipt: z.string().nullable(),
+    })),
+  })),
+});
+export type IncidentReadiness = z.infer<typeof readinessSchema>;

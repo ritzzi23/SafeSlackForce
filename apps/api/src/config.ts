@@ -6,6 +6,7 @@ export function readConfig(env = process.env) {
   if (token.length < 24) throw new Error('Set DASHBOARD_TOKEN to at least 24 random characters in .env.');
   return {
     mode, token, host: env.HOST || '127.0.0.1', port: z.coerce.number().int().min(1).max(65535).parse(env.PORT || 4100),
+    officeDemoEnabled: env.OFFICE_DEMO_ENABLED === 'true',
     database: env.DATABASE_PATH || `data/incidentos-${mode}.sqlite`, origin: env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
     dashboardUrl: z.string().url().refine(s => ['http:', 'https:'].includes(new URL(s).protocol)).parse(env.DASHBOARD_URL || env.FRONTEND_ORIGIN || 'http://localhost:5173'),
     apiKey: env.OPENROUTER_API_KEY ?? '', model: env.INCIDENTOS_MODEL ?? '',
