@@ -2224,3 +2224,36 @@ h1 {
     margin-bottom: 0;
   }
 }
+
+/* The full project name remains legible on compact screens. */
+.brand-name {
+  white-space: nowrap;
+  letter-spacing: -0.9px;
+}
+@media (max-width: 760px) {
+  .brand {
+    font-size: 18px;
+    gap: 5px;
+  }
+  .brand-name {
+    letter-spacing: -0.7px;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .environment {
+    font-size: 6px;
+    letter-spacing: 0.45px;
+  }
+}
+@media (max-width: 380px) {
+  .topbar {
+    padding: 0 10px;
+  }
+  .topbar-right .user-avatar {
+    display: none;
+  }
+  .brand {
+    font-size: 17px;
+  }
+}

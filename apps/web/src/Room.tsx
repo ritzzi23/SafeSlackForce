@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { PROJECT_NAME } from "./branding";
 import type { IncidentSnapshot } from "@incidentos/contracts";
 type V3 = [number, number, number];
 function Solid({
@@ -356,7 +357,7 @@ export default function Room({ snapshot }: { snapshot: IncidentSnapshot }) {
       <WindowPanel x={-5.45} />
       <WindowPanel x={-2.8} />
       <Sign
-        text="IncidentOS"
+        text={PROJECT_NAME}
         sub="DOCK B / INCIDENT COMMAND"
         p={[0.35, 1.68, -5.84]}
         width={2.8}

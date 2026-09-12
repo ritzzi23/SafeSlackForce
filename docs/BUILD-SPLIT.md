@@ -66,7 +66,7 @@ deterministic server behavior.
 ### Application shell
 
 - Build the off-white desktop layout inspired by the supplied Agents Office reference.
-- Add the IncidentOS header, selected incident, Slack connection state and Slack thread link.
+- Add the SafeSlackForce header, selected incident, Slack connection state and Slack thread link.
 - Reserve the main area for the 3D office and the right side for tasks and agent details.
 - Keep tasks and incident status usable on narrow screens with the 3D view behind a toggle.
 

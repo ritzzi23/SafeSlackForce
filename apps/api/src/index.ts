@@ -21,7 +21,7 @@ for (const r of store.list<any>('request').filter(r => r.status === 'pending')) 
 for (const i of domain.all()) for (const a of i.snapshot.agents) if (a.status === 'working') domain.agent(i.snapshot.incidentId, a.id, 'failed', 'Server restarted during agent work');
 if (channel instanceof SlackChannel) channel.wire(domain, agents);
 const app = createHttp(domain, agents, budget, new Research(config, budget, store));
-const server = app.listen(config.port, config.host, () => console.log(`IncidentOS API: http://${config.host}:${config.port} (${config.mode})`));
+const server = app.listen(config.port, config.host, () => console.log(`SafeSlackForce API: http://${config.host}:${config.port} (${config.mode})`));
 if (channel instanceof SlackChannel) await channel.start(domain);
 const timer = setInterval(() => { void notifications.pump().catch(() => console.error('Notification processing failed')); }, 1000);
 let stopping = false;

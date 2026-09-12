@@ -44,6 +44,7 @@ import {
 import { departments, demoAnswer, demoSnapshot, stages } from "./data";
 import { api, ApiError, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
+import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 type Chat = {
   id: string;
@@ -442,13 +443,13 @@ export default function App() {
       }
       return;
     }
-    const body = `# IncidentOS · Demo handoff report\n\nSYNTHETIC DEMO — no live Slack or model activity.\n\nIncident: ${snapshot.title}\nStatus: ${snapshot.status}\n\n## Outstanding and completed work\n${snapshot.tasks.map((t) => `- ${t.title}: ${t.status}; owner: ${t.owner?.name}`).join("\n")}\n\n## Timeline\n${snapshot.activity.map((a) => `- ${a.text}`).join("\n")}\n\nSources: synthetic warehouse procedure and fictional witness accounts.\nHandoff acceptance does not confirm physical completion or incident closure.\n`;
+    const body = `# ${PROJECT_NAME} · Demo handoff report\n\nSYNTHETIC DEMO — no live Slack or model activity.\n\nIncident: ${snapshot.title}\nStatus: ${snapshot.status}\n\n## Outstanding and completed work\n${snapshot.tasks.map((t) => `- ${t.title}: ${t.status}; owner: ${t.owner?.name}`).join("\n")}\n\n## Timeline\n${snapshot.activity.map((a) => `- ${a.text}`).join("\n")}\n\nSources: synthetic warehouse procedure and fictional witness accounts.\nHandoff acceptance does not confirm physical completion or incident closure.\n`;
     const url = URL.createObjectURL(
       new Blob([body], { type: "text/markdown" }),
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = "incidentos-demo-handoff.md";
+    a.download = DEMO_REPORT_FILENAME;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -456,14 +457,12 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="IncidentOS home">
+        <a className="brand" href="/" aria-label={`${PROJECT_NAME} home`}>
           <span className="brand-mark">
             <Hexagon size={27} />
             <Plus size={13} />
           </span>
-          <span>
-            Incident<span className="brand-os">OS</span>
-          </span>
+          <span className="brand-name">{PROJECT_NAME}</span>
           <span className="brand-divider" />
           <span className="brand-caption">THE AGENT WORKSPACE</span>
         </a>
