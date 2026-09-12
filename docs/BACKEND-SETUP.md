@@ -20,6 +20,16 @@ Fixture mode never calls a live model or Slack. Notifications appear in the fixt
 outbox, not somebody's Slack account. The database persists incident state; the fixture
 outbox display is in memory. Never present fixture reasoning as live agent execution.
 
+For a fresh checkout, `npm run configure:sponsors -- /private/path/sponsor-credits.md`
+can provision recognized credentials into a new gitignored `.env` with owner-only permissions.
+It generates a dashboard token, never prints secret values and refuses to overwrite an
+existing `.env`. Redemption codes are not treated as API keys. The current local checkout
+has Exa configured this way; Slack and OpenRouter credentials still need to be supplied.
+
+`npm run check:research` performs one fixed-topic Exa search using the persistent cache and
+call budget. It can consume credits on a cache miss. Do not run it alongside the API process:
+SQLite export in this prototype assumes a single process owns the database.
+
 ## Frontend integration
 
 Import types and Zod schemas from `@incidentos/contracts`. Use `localhost` consistently

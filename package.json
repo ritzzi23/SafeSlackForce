@@ -10,7 +10,9 @@
     "test": "tsx --test apps/api/test/*.test.ts",
     "fixtures": "tsx apps/api/scripts/fixtures.ts",
     "fixtures:write": "tsx apps/api/scripts/fixtures.ts --write",
-    "doctor": "tsx apps/api/scripts/doctor.ts"
+    "doctor": "tsx apps/api/scripts/doctor.ts",
+    "configure:sponsors": "tsx apps/api/scripts/configure-sponsors.ts",
+    "check:research": "tsx apps/api/scripts/check-research.ts"
   },
   "engines": { "node": ">=18.20" },
   "overrides": { "qs": "^6.16.0" },

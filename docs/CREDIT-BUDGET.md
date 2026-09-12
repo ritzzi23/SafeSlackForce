@@ -2,7 +2,9 @@
 
 OpenRouter redemption confirmed by Om's screenshot: $5 added. Current remaining balance
 must be checked in the provider dashboard; the application cannot infer spending elsewhere.
-Exa balance and expiry have not been verified. Never commit API keys or redemption codes.
+Exa balance and expiry have not been verified. A subsequent authorized live check on
+12 September succeeded and reported $0.007 for one cached public-reference search. This
+does not establish the account's remaining balance. Never commit API keys or redemption codes.
 
 ## Where each provider belongs
 

@@ -9,9 +9,11 @@ Backend implementation is present on `feat/om-backend-agents`. Twenty-four autom
 TypeScript checks and the dependency audit pass. The actual API entry point was started in
 fixture mode, created an incident with three tasks and reported zero provider calls.
 
-Live operational acceptance is still pending: there is no configured `.env`, Slack app/bot
-credentials or OpenRouter key/model in this checkout. No real Slack send, model inference,
-vision inference or Exa search was performed during this implementation pass.
+Live operational acceptance is still pending. A private, gitignored `.env` now contains a
+generated dashboard pairing token and the authorized Exa credential. One real public-reference
+Exa search succeeded, returned an OSHA source and reported $0.007; its result and usage are
+cached in local SQLite. The supplied sponsor notes contained no Slack app/bot credentials or
+OpenRouter API key. No real Slack send, model inference or vision inference has been verified.
 
 ## Om's code ownership checklist
 
@@ -27,7 +29,7 @@ vision inference or Exa search was performed during this implementation pass.
 | Dashboard backend | Paired demo session, snapshots, SSE replay, questions and private reports | HTTP tests and entry-point smoke check |
 | Voice backend | Confirmed transcript relay to Slack, identity label and idempotency | HTTP test; frontend microphone is Ritesh's work |
 | Photo backend | Slack metadata/download, restricted raster proxy, optional budgeted vision tool | Mocked-download tests; live Slack/vision configuration pending |
-| Provider controls | Bounded OpenRouter calls/cost accounting; opt-in cached Exa | No-spend provider tests |
+| Provider controls | Bounded OpenRouter calls/cost accounting; opt-in cached Exa | Mocked provider tests; one live Exa search verified for $0.007 |
 | Developer handoff | Shared types, six generated fixture states, manifest, doctor and setup notes | Fixtures validated against shared schema |
 | Demo reset | Archive fixtures while retaining history and provider accounting | HTTP test verifies budget survives |
 
@@ -36,7 +38,8 @@ vision inference or Exa search was performed during this implementation pass.
 1. Create/install the Slack app using `fixtures/slack-app-manifest.json`.
 2. Enable Socket Mode, create the app token with `connections:write`, and obtain the bot token.
 3. Invite the bot and both demo participants to the configured public channel.
-4. Fill `.env` locally with the workspace/channel/role IDs, tokens, pairing token and model.
+4. Fill the remaining `.env` fields locally with workspace/channel/role IDs, Slack tokens,
+   OpenRouter API key and model. The pairing token and Exa key are already configured locally.
    Do not put these values in Git, screenshots, frontend code or shared chat.
 5. Set a provider-side spending limit, check actual credit balance, and keep the first
    application allowance at $1. Select a current tool-capable model; select a separate
