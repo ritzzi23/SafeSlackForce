@@ -133,9 +133,13 @@ test('HTTP pairing, persisted fixture workflow, stale requests and private repor
     assert.equal((await fetch(`${base}/api/incidents/${s.id}/reports/${report.reportId}`, { headers })).status, 404);
     assert.equal((await fetch(`${base}/api/incidents/${snapshot.incidentId}/reports/${report.reportId}`, { headers })).status, 200);
     const controller = new AbortController();
-    const events = await fetch(`${base}/api/incidents/${snapshot.incidentId}/events?after=0`, { headers, signal: controller.signal });
-    const reader = events.body!.getReader(); const first = await reader.read();
-    assert.match(new TextDecoder().decode(first.value), /event: snapshot.updated/); controller.abort(); await reader.cancel().catch(() => {});
+    const events = await fetch(`${base}/api/incidents/${snapshot.incidentId}/events?after=0`, { headers, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(2000)]) });
+    const reader = events.body!.getReader(); let received = '';
+    while (!received.includes('event: snapshot.updated')) {
+      const chunk = await reader.read(); if (chunk.done) break;
+      received += new TextDecoder().decode(chunk.value);
+    }
+    assert.match(received, /event: snapshot.updated/); controller.abort(); await reader.cancel().catch(() => {});
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); s.store.close(); }
 });
 
