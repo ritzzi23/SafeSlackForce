@@ -135,7 +135,7 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
         const receipt = await agents.notifications.channel.send(domain.get(id), `[Dashboard coordinator: reviewed voice transcript]\n${input.text.replace(/[<>]/g, '')}`);
         domain.addMessage(id, { ts: receipt, text: input.text, user: 'demo-coordinator', origin: 'confirmed_transcript' });
         record.status = 'delivered'; domain.store.transaction(() => domain.store.put(key, 'transcript', record));
-        await agents.run(id, 'commander', 'A coordinator confirmed and relayed a transcript into Slack. Review it as reported information, not confirmation of completed physical actions.');
+        await agents.coordinate(id, 'A coordinator reviewed and relayed an update into Slack. Read the incident and coordinate its new information, including the Evidence review. Treat it as reported information, not confirmation of completed physical actions.');
       } catch (e) { record.status = record.status === 'delivered' ? 'delivered_agent_failed' : e instanceof DomainError && e.status === 409 ? 'stale' : 'uncertain'; record.error = 'Inspect incident and Slack before resubmitting; no automatic retry'; }
       domain.store.transaction(() => domain.store.put(key, 'transcript', record));
     }).catch(() => {});
