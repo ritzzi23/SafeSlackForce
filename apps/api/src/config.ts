@@ -13,8 +13,12 @@ export function readConfig(env = process.env) {
     supervisors: (env.SLACK_SUPERVISOR_USER_IDS ?? 'USUPERVISOR').split(',').filter(Boolean),
     lead: env.SLACK_LEAD_USER_ID ?? 'ULEAD', backup: env.SLACK_BACKUP_USER_ID ?? 'UBACKUP',
     followupMs: z.coerce.number().positive().parse(env.FOLLOWUP_SECONDS ?? 300) * 1000,
-    callLimit: z.coerce.number().int().positive().parse(env.MODEL_CALL_LIMIT ?? 100),
+    callLimit: z.coerce.number().int().positive().parse(env.MODEL_CALL_LIMIT ?? 40),
     maxRounds: z.coerce.number().int().min(1).max(10).parse(env.MODEL_MAX_ROUNDS ?? 5),
+    modelBudget: z.coerce.number().positive().parse(env.MODEL_BUDGET_USD ?? 1),
+    callReserve: z.coerce.number().positive().parse(env.MODEL_CALL_RESERVE_USD ?? 0.05),
+    exaKey: env.EXA_API_KEY ?? '', exaEnabled: env.EXA_ENABLED === 'true',
+    exaCallLimit: z.coerce.number().int().positive().parse(env.EXA_CALL_LIMIT ?? 5),
   };
 }
 export type Config = ReturnType<typeof readConfig>;
