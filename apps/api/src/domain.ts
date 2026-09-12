@@ -4,6 +4,7 @@ import { agentIds, snapshotSchema, type AgentId, type AgentStatus, type Incident
 import type { Config } from './config.js';
 import { Store } from './store.js';
 import { handoffBlockers, closureBlockers } from './readiness.js';
+import type { OfficeDirectory } from './office.js';
 
 export class DomainError extends Error { constructor(public status: number, message: string) { super(message); } }
 export const requireThat = (condition: unknown, status: number, message: string): asserts condition => { if (!condition) throw new DomainError(status, message); };
@@ -28,7 +29,7 @@ export const procedure = {
 export class Incidents {
   bus = new EventEmitter();
   connection: IncidentSnapshot['slackConnection'] = 'disconnected';
-  constructor(public store: Store, public config: Config) {
+  constructor(public store: Store, public config: Config, public office?: OfficeDirectory) {
     if (store.list<Incident>('incident').some(i => i.snapshot.mode !== config.mode)) {
       throw new Error('Database contains incidents from another mode. Use a separate DATABASE_PATH; fixture records must never be sent to live Slack.');
     }
@@ -43,7 +44,7 @@ export class Incidents {
     for (const a of incident.snapshot.activity) for (const s of a.sources) if (s.kind === 'human_confirmation' || s.kind === 'tool_result') refs.set(s.id, s);
     for (const file of incident.attachments ?? []) if (!file.removed) refs.set(file.source.id, file.source);
     for (const file of incident.attachments ?? []) if (file.removed) refs.delete(file.source.id);
-    return ids.map(id => { const source = refs.get(id); if (!source) throw new DomainError(400, `Unknown or removed source: ${id}`); return source; });
+    return ids.map(id => { const source = refs.get(id) ?? this.office?.source(id); if (!source) throw new DomainError(400, `Unknown or removed source: ${id}`); return source; });
   }
   create(input: { team: string; channel: string; ts: string; user: string; text: string }) {
     const existing = this.find(input.team, input.channel, input.ts); if (existing) return existing;

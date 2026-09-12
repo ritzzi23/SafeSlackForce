@@ -16,6 +16,7 @@
     "fixtures": "tsx apps/api/scripts/fixtures.ts",
     "fixtures:write": "tsx apps/api/scripts/fixtures.ts --write",
     "doctor": "tsx apps/api/scripts/doctor.ts",
+    "seed:office": "tsx apps/api/scripts/seed-office.ts",
     "configure:sponsors": "tsx apps/api/scripts/configure-sponsors.ts",
     "check:research": "tsx apps/api/scripts/check-research.ts"
   },

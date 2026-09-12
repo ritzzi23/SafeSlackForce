@@ -45,6 +45,7 @@ import { departments, demoAnswer, demoSnapshot, stages } from "./data";
 import { api, ApiError, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
 import ActionReadiness from "./ActionReadiness";
+import OfficeDirectory from "./OfficeDirectory";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 type Chat = {
@@ -100,7 +101,7 @@ export default function App() {
     demoSnapshot(1),
   );
   const [selected, setSelected] = useState<AgentId>("commander");
-  const [tab, setTab] = useState<"chat" | "tasks" | "activity" | "thread">(
+  const [tab, setTab] = useState<"chat" | "tasks" | "activity" | "thread" | "office">(
     "chat",
   );
   const [roomFocus, setRoomFocus] = useState(true);
@@ -558,6 +559,7 @@ export default function App() {
           >
             <AudioLines size={21} />
           </button>
+          <button className={`rail-button ${tab === "office" ? "current" : ""}`} aria-label="Office reference database" title="Office reference database" onClick={() => setTab("office")}><BookOpen size={21} /></button>
           <span className="rail-line" />
           {agentIds.map((id) => (
             <button
@@ -919,7 +921,7 @@ export default function App() {
             </div>
           )}
           <div className="panel-content" role="tabpanel">
-            {tab === "chat" ? (
+            {tab === "office" ? <OfficeDirectory connected={live} /> : tab === "chat" ? (
               <>
                 <div className="conversation-date">
                   <span />
