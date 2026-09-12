@@ -15,7 +15,7 @@ import type { Completion, Model } from '../src/model.js';
 
 const call = (name: string, args = {}): Completion => ({ content: null, tool_calls: [{ id: randomUUID(), type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
 
-async function setup(options: { stubborn?: boolean; question?: boolean; failEvidence?: boolean; delegateProcedure?: boolean } = {}) {
+async function setup(options: { stubborn?: boolean; question?: boolean; failEvidence?: boolean; delegateProcedure?: boolean; reportPromise?: boolean } = {}) {
   const store = await Store.open(':memory:'), office = await Store.open(':memory:'), restricted = await Store.open(':memory:');
   seedOffice(office, restricted);
   const domain = new Incidents(store, readConfig({ DASHBOARD_TOKEN: 'coordination-test-token-12345678', MODEL_MAX_ROUNDS: '10' }), new OfficeDirectory(office));
@@ -51,6 +51,7 @@ async function setup(options: { stubborn?: boolean; question?: boolean; failEvid
       if (task) return call('notify', { taskId: task.id, recipient: 'ULEAD', text: `Please accept ownership: ${task.title}` });
     }
     if (role === 'records') {
+      if (options.reportPromise && !messages.some(m => m.role === 'system' && m.content?.startsWith('No report has been saved'))) return { content: 'The report is saved and ready.' };
       const pages = messages.filter(m => m.role === 'tool').map(m => JSON.parse(m.content!)).filter(v => 'nextOffset' in v);
       if (!pages.length || pages.at(-1).nextOffset !== null) return call('read_history', { offset: pages.at(-1)?.nextOffset ?? 0 });
       if (!did('save_report')) return call('save_report', { summary: 'Synthetic incident: all physical work remains open and unconfirmed.', sources: ['200.1'] });
@@ -86,6 +87,20 @@ test('one report triggers missing specialists, real tools and a sourced draft be
     assert.equal(s.channel.sent.length, 4, 'three notification receipts and one consolidated question');
     assert.equal(i.snapshot.agents[0].status, 'waiting');
     assert.match(i.snapshot.agents[0].summary, /3 still await recorded ownership acceptance/);
+  } finally { await s.close(); }
+});
+
+test('Records is corrected when it claims a report is saved without calling save_report', async () => {
+  const s = await setup({ reportPromise: true });
+  try {
+    const id = s.intake.receive(s.event, 'TDEMO', 'Ev-report-promise')!;
+    await s.agents.enqueue(id, async () => {});
+    await s.pilot.tick(id);
+    const i = s.domain.get(id);
+    assert.equal(i.snapshot.reports.length, 1);
+    assert.equal(i.snapshot.agents.find(a => a.id === 'records')!.status, 'done');
+    assert.ok(i.snapshot.activity.some(a => a.text.includes('records tool save_report succeeded')));
+    assert.ok(i.snapshot.tasks.every(t => t.status === 'assigned'));
   } finally { await s.close(); }
 });
 

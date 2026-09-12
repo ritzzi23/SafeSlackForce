@@ -12,7 +12,7 @@ const roles: Record<AgentId, string> = {
   procedure: 'Read the approved synthetic procedure and roster before applying it. Only apply it when the report matches its forklift/loading-dock scope. Otherwise ask the human for an applicable procedure. Review relevant task confirmations.',
   evidence: 'Compare current, non-deleted source messages. Link observations to facts. Flag contradictions only when scope, location and time actually overlap; cite both sources. Inspect images only when read_incident lists actual attachments; never invent a file ID or assume a photo exists. A text-only report is not a missing-image failure. Never interpret a photo as proof of site safety.',
   communications: 'Read the roster and current tasks. Send concise notifications about open tasks to configured recipients. Sent messages and human acknowledgement are distinct. Do not repeat already queued messages.',
-  records: 'Read the entire current incident before generating a sourced handoff. Record open tasks honestly. Use save_report to persist the report; never claim it is saved without a tool result.',
+  records: 'Read the entire current incident before generating a sourced handoff. Record open tasks honestly. Use save_report to persist the report; never claim it is saved without a tool result. A recorded location is reported, not independently confirmed. Historical agent errors are historical attempts, not new incident facts. Prioritize the latest non-deleted participant evidence and current task states over older agent summaries.',
 };
 type CoordinationCycle = { attempted: Set<AgentId>; questions: string[] };
 const workflowInstructions = `This is an autonomous coordination cycle triggered by a Slack report or source update.
@@ -101,7 +101,10 @@ export class Agents {
     this.domain.agent(id, 'commander', failed.length ? 'failed' : open.length || cycle.questions.length ? 'waiting' : 'done', summary);
     return summary;
   }
-  async run(id: string, agent: AgentId, task: string, depth = 0, cycle?: CoordinationCycle): Promise<string> {
+  async prepareReport(id: string, task: string) {
+    return this.run(id, 'records', task, 0, undefined, true);
+  }
+  async run(id: string, agent: AgentId, task: string, depth = 0, cycle?: CoordinationCycle, requireReport = false): Promise<string> {
     if (depth > 1) throw new DomainError(400, 'Delegation depth exceeded');
     if (this.domain.get(id).snapshot.status === 'closed' || this.domain.get(id).demoArchived) throw new DomainError(409, 'Incident is closed or archived');
     cycle?.attempted.add(agent);
@@ -121,6 +124,7 @@ export class Agents {
     let readIncident = false;
     let historyOffset = 0;
     let historyComplete = false;
+    let reportSaved = false;
     const failures = new Set<string>();
     let waitingForHuman = false;
     let completionReminder = false;
@@ -134,13 +138,14 @@ export class Agents {
         if (!response.tool_calls?.length) {
           if (!readIncident) throw new Error('Agent did not inspect incident evidence');
           if (before !== this.domain.get(id).snapshot.version) throw new Error('Incident changed during final reasoning; rerun with current evidence');
-          if (cycle && !failures.size) {
+          if ((cycle || requireReport) && !failures.size) {
             const current = this.domain.get(id);
             const missingNotifications = agent === 'communications' ? current.snapshot.tasks.filter(t =>
               ['proposed', 'assigned'].includes(t.status) && t.owner?.slackUserId &&
               [this.domain.config.lead, this.domain.config.backup, ...this.domain.config.supervisors].includes(t.owner.slackUserId) &&
               !attemptedNotifications.has(t.id) && !current.notifications.some(n => n.taskId === t.id && n.recipient === t.owner!.slackUserId)) : [];
-            const missing = agent === 'procedure' && !readProcedure ? 'Read the configured procedure before deciding whether it applies.'
+            const missing = requireReport && !reportSaved ? 'No report has been saved in this run. Read every remaining history page, then call save_report with sourced content before giving a final answer. Writing report text alone does not save it.'
+              : agent === 'procedure' && !readProcedure ? 'Read the configured procedure before deciding whether it applies.'
               : agent === 'procedure' && this.domain.matchingProcedureSource(id) && procedure.tasks.some(t => !current.snapshot.tasks.some(task => task.id === t.key)) ? 'The configured procedure matches and its tasks are missing. Use apply_procedure to create the owned tasks now; do not stop at a plan.'
               : missingNotifications.length ? `Notify these assigned task owners using the notify tool: ${missingNotifications.map(t => t.id).join(', ')}. Delivery must have a tool result; do not stop at a promise.` : '';
             if (missing) {
@@ -174,6 +179,7 @@ export class Agents {
             if (call.function.name === 'save_report' && !historyComplete) throw new DomainError(400, 'Read all timeline pages before saving');
             if (call.function.name === 'read_history' && args.offset !== historyOffset) throw new DomainError(400, `Read history at offset ${historyOffset}`);
             result = await this.tool(id, agent, call.function.name, args, depth, cycle);
+            if (call.function.name === 'save_report') reportSaved = true;
             if (call.function.name === 'read_office') {
               for (const record of (result as { records: { source: SourceRef }[] }).records) if (!runSources.some(s => s.id === record.source.id)) runSources.push(record.source);
             }

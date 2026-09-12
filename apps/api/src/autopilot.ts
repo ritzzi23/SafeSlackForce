@@ -50,7 +50,7 @@ export class Autopilot {
         if (this.stopped || this.domain.automaticReportKey(id) !== fingerprint) return;
         const before = this.domain.get(id).snapshot.reports.length;
         this.domain.delegate(id, 'records', 'Automatically prepare or refresh the sourced handoff after an operational update.');
-        await this.agents.run(id, 'records', 'Read the current incident and every history page, then save a sourced handoff report without asking permission to draft it. Include unresolved tasks, unknown facts and delivery failures. Never mark human actions complete or accept/close the incident.');
+        await this.agents.prepareReport(id, 'Read the current incident and every history page, then save a sourced handoff report without asking permission to draft it. Include unresolved tasks, unknown facts and delivery failures. Never mark human actions complete or accept/close the incident.');
         if (this.domain.get(id).snapshot.reports.length <= before) throw new Error('Records did not save a report');
       });
       attempt.status = 'done';
