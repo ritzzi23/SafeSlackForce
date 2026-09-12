@@ -27,7 +27,8 @@ const media = new Media(domain, channel instanceof SlackChannel ? { info: async 
   const result = await channel.app.client.files.info({ file }); if (!result.ok) throw new Error('Slack file info failed'); return result.file;
 } } : undefined, model);
 const agents = new Agents(domain, notifications, model, media);
-const autopilot = new Autopilot(domain, agents);
+agents.response.recover();
+const autopilot = new Autopilot(domain, agents, config.autoReportLimit);
 for (const r of store.list<any>('request').filter(r => r.status === 'pending')) store.transaction(() => store.put(`request-${r.requestId}`, 'request', { ...r, status: 'failed', error: 'Server restarted during this request' }));
 for (const r of store.list<any>('transcript').filter(r => r.status === 'pending')) store.transaction(() => store.put(`transcript-${r.requestId}`, 'transcript', { ...r, status: 'uncertain', error: 'Server restarted; inspect Slack before resubmitting' }));
 for (const job of store.list<any>('slack-job').filter(j => ['pending', 'running'].includes(j.state))) {
@@ -40,7 +41,7 @@ autopilot.start();
 const app = createHttp(domain, agents, budget, new Research(config, budget, store), media);
 const server = app.listen(config.port, config.host, () => console.log(`SafeSlackForce API: http://${config.host}:${config.port} (${config.mode})`));
 if (channel instanceof SlackChannel) await channel.start(domain).catch(() => { domain.setConnection('disconnected'); console.error('Slack startup failed. Check credentials and restart; dashboard remains available.'); });
-const timer = setInterval(() => { void notifications.pump().catch(() => console.error('Notification processing failed')); }, 1000);
+const timer = setInterval(() => { void notifications.pump().catch(() => console.error('Notification processing failed')); void agents.response.pump().catch(() => console.error('Scheduled response processing failed')); }, 1000);
 let stopping = false;
 const shutdown = async () => {
   if (stopping) return; stopping = true; clearInterval(timer); autopilot.stop();

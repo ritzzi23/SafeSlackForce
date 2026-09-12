@@ -46,6 +46,8 @@ import { api, ApiError, linkedIncidentId, safeUrl } from "./api";
 import SlackThread from "./SlackThread";
 import ActionReadiness from "./ActionReadiness";
 import OfficeDirectory from "./OfficeDirectory";
+import IncidentShare from "./IncidentShare";
+import ResponseBoard from "./ResponseBoard";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 type Chat = {
@@ -114,7 +116,7 @@ export default function App() {
   const [reset, setReset] = useState(0);
   const [input, setInput] = useState("");
   const [chats, setChats] = useState<Chat[]>([]);
-  const [modal, setModal] = useState<"connect" | "help" | null>(null);
+  const [modal, setModal] = useState<"connect" | "help" | "share" | null>(null);
   const [token, setToken] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [backendMode, setBackendMode] = useState<"fixture" | "live" | null>(null);
@@ -636,7 +638,7 @@ export default function App() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Open Slack <ExternalLink size={13} />
+                Shared thread <ExternalLink size={13} />
               </a>
             ) : (
               <button
@@ -647,6 +649,8 @@ export default function App() {
               </button>
             )}
           </div>
+          {snapshot.slackThreadUrl && <button className="join-incident-banner" onClick={() => setModal("share")}><Users size={16} /><strong>Join this incident</strong><span>Share thread & QR · Add details together</span><ArrowRight size={16} /></button>}
+          {live && <ResponseBoard snapshot={snapshot} />}
           <div className="scene-area">
             <div className="scene-caption">
               <span className="tiny-square" /> WAREHOUSE OPERATIONS
@@ -1165,7 +1169,7 @@ export default function App() {
               </form>
               <p className="composer-note">
                 <ShieldCheck size={11} />
-                People approve. Agents coordinate.
+                Agents act. Every update improves the response.
               </p>
             </div>
           )}
@@ -1207,11 +1211,11 @@ export default function App() {
               {modal === "connect" ? <Wifi size={26} /> : <Layers3 size={26} />}
             </span>
             <h2 id="modal-title">
-              {modal === "connect"
+              {modal === "share" ? "Join the incident response" : modal === "connect"
                 ? paired ? "Workspace connected" : "Connect your workspace"
                 : "One incident. One shared picture."}
             </h2>
-            {modal === "connect" ? (
+            {modal === "share" ? <IncidentShare snapshot={snapshot} /> : modal === "connect" ? (
               <>
                 <p>
                   {paired
@@ -1286,10 +1290,10 @@ export default function App() {
                   <li>
                     Connect the backend for real events and agent responses.
                   </li>
-                  <li>Confirm actions and accept handoffs in Slack.</li>
+                  <li>Share the incident QR and add observations in its Slack thread.</li>
                 </ul>
                 <p className="field-hint">
-                  This local demo uses fictional data and scripted responses.
+                  Preview mode is scripted. A connected workspace runs live agents with the configured data and services.
                   Original scene geometry inspired by the Agents Office
                   reference.
                 </p>

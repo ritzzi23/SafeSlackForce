@@ -459,7 +459,7 @@ function Pod({
             {agent.status === "working"
               ? "Working"
               : agent.status === "waiting"
-                ? "Waiting on a person"
+                ? "Monitoring updates"
                 : agent.status === "blocked"
                   ? "Needs review"
                   : agent.status === "done"

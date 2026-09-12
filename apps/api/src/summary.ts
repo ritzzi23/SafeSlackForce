@@ -45,14 +45,15 @@ export class SummaryPublisher {
       { type: 'header', text: { type: 'plain_text', text: `${id} | ${s.status}` } },
       { type: 'section', text: { type: 'mrkdwn', text: `*Reported location:* ${escape(s.location)}\n*Commander:* ${escape(s.agents[0].summary).slice(0, 2000)}` } },
     ];
+    if (s.responseActions?.length) blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*Autonomous response — no approval needed*\n${s.responseActions.map(a => `• ${escape(a.title)}: *${a.status}*${a.dueAt ? ` · ${escape(a.dueAt)}` : ''}\n${escape(a.summary)}`).join('\n').slice(0, 2800)}` } });
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: s.agents.slice(1).map(a => `*${a.name} (${a.status}):* ${escape(a.summary).slice(0, 350)}`).join('\n') } });
-    if (!['closed', 'handed_over'].includes(s.status) && s.tasks.some(t => ['assigned', 'proposed'].includes(t.status))) {
+    if (!this.domain.config.autonomousResponse && !['closed', 'handed_over'].includes(s.status) && s.tasks.some(t => ['assigned', 'proposed'].includes(t.status))) {
       blocks.push({ type: 'actions', elements: [button('incident_accept_assigned', 'Accept my assigned tasks', { incidentId: id, version: s.version })] } as KnownBlock);
     }
     for (const t of s.tasks.slice(0, 10)) {
       const value = { incidentId: id, taskId: t.id, version: t.version };
       blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*${escape(t.title)}*\n${t.status} | owner: ${escape(t.owner?.name ?? 'UNASSIGNED')}${t.blockedReason ? `\n${escape(t.blockedReason)}` : ''}` } });
-      if (s.status !== 'closed') blocks.push({ type: 'actions', elements: [
+      if (!this.domain.config.autonomousResponse && s.status !== 'closed') blocks.push({ type: 'actions', elements: [
         ...(['assigned', 'proposed'].includes(t.status) ? [button('incident_acknowledge', 'Accept ownership', value)] : []),
         button('incident_complete', 'Confirm action…', value), button('incident_review', 'Request review', value),
       ] } as KnownBlock);
@@ -62,11 +63,11 @@ export class SummaryPublisher {
       blocks.push({ type: 'actions', elements: [button('incident_retry_delivery', 'Retry (checked Slack)', { incidentId: id, notificationId: n.id })] } as KnownBlock);
     }
     const controls = [button('incident_report', 'Prepare handoff report', { incidentId: id }), button('incident_run', 'Retry agent coordination', { incidentId: id })];
-    if (s.status === 'handoff_ready') controls.push(button('incident_handoff', 'Accept handoff', { incidentId: id, version: s.version }));
-    if (s.status === 'handed_over') controls.push(button('incident_close', 'Close with confirmation…', { incidentId: id, version: s.version }));
+    if (!this.domain.config.autonomousResponse && s.status === 'handoff_ready') controls.push(button('incident_handoff', 'Accept handoff', { incidentId: id, version: s.version }));
+    if (!this.domain.config.autonomousResponse && s.status === 'handed_over') controls.push(button('incident_close', 'Close with confirmation…', { incidentId: id, version: s.version }));
     if (s.status !== 'closed') blocks.push({ type: 'actions', elements: controls } as KnownBlock);
     const url = new URL(this.domain.config.dashboardUrl); url.searchParams.set('incidentId', id);
-    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `<${url.toString()}|Open command center and reports> | <${s.slackThreadUrl}|Incident thread>\nSynthetic demonstration. Sent is not acknowledged; assigned is not completed.` } });
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*Join the shared incident response*\n<${s.slackThreadUrl}|Open thread and add details> · <${url.toString()}|Command center, reports & shareable QR>\nReply in this thread with new observations. Agents process updates automatically. Synthetic demonstration; simulated calls never contact emergency services.` } });
     const record: SummaryRecord = { state: 'sending', ts: saved?.ts };
     this.domain.store.transaction(() => this.domain.store.put(key, 'summary', record));
     try {

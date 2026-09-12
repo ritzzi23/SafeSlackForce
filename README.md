@@ -3,6 +3,36 @@
 SafeSlackForce is a Slack-first incident coordination system
 with a central Commander agent, specialist agents, and a live 3D command center.
 
+## Autonomous response and shared incident thread
+
+With `AUTONOMOUS_RESPONSE_ENABLED=true`, a reported incident immediately notifies
+configured management (`SLACK_SUPERVISOR_USER_IDS`), schedules an incident follow-up,
+and runs the Commander and specialists. Database lookup, sourced evidence extraction,
+notifications and report generation do not wait for task ownership acceptance.
+The Commander can use `manage_response` to reschedule a pending follow-up (30–3600
+seconds). Due updates run from persisted schedules, including for acknowledged but
+incomplete tasks. Delivery receipts, unknown outcomes and scheduled work appear in
+the **Autopilot** action log and reports. An uncertain send is not blindly duplicated.
+
+Use **Join this incident** above the office to open the shared Slack thread, copy
+its link, or download a scannable QR. Participants with access to the workspace and
+channel reply in that thread; their observations and corrections automatically
+trigger coordination. The QR uses the Slack URL, never a localhost dashboard URL.
+
+`EMERGENCY_CALL_MODE=simulation` records a clearly labelled simulated dispatch for
+explicitly synthetic incidents. **No real emergency call is placed.** The office
+directory contains fictional contacts and no callable telephone numbers. Real
+calling still requires a provider integration, verified site routing and actual
+contact numbers. Unconfigured calls remain blocked while other digital work proceeds.
+Agent actions cannot establish that physical work happened or emergency services
+arrived; those outcomes need evidence. Report generation itself has no approval gate.
+If model narration fails, autonomous mode still saves a clearly labelled structured
+report from persisted evidence, tasks, receipts and the complete timeline.
+
+`AUTO_REPORT_LIMIT=20` bounds automatic revisions per incident; the global model
+call and dollar limits still apply. The older ownership/handoff controls remain
+available for recording real-world responsibility and final closure.
+
 The current product, architecture, Slack workflow, frontend direction, and Om/Ritesh work split
 are documented in [the implementation plan](docs/INCIDENTOS-SLACK-BUILD-PLAN.md).
 

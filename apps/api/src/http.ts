@@ -52,6 +52,10 @@ export function createHttp(domain: Incidents, agents: Agents, budget: Budget, re
   }));
   app.get('/api/incidents/:id', wrap((req, res) => res.json(domain.get(req.params.id).snapshot)));
   app.get('/api/incidents/:id/readiness', wrap((req, res) => res.json(domain.readiness(req.params.id))));
+  app.post('/api/incidents/:id/response', wrap(async (req, res) => {
+    const id = req.params.id;
+    return res.json(await agents.enqueue(id, () => agents.response.run(id, req.body)));
+  }));
   app.get('/api/incidents/:id/details', wrap((req, res) => { const i = domain.get(req.params.id); return res.json({ facts: i.facts, messages: i.messages, notifications: i.notifications, attachments: i.attachments ?? [], summaryDelivery: domain.store.get(`summary-${req.params.id}`) ?? null }); }));
   app.get('/api/incidents/:id/attachments/:fileId', wrap((req, res) => {
     if (!media) throw new DomainError(404, 'Media not configured');

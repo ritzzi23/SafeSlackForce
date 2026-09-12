@@ -5,8 +5,8 @@ import { api } from './api';
 export function ReadinessContent({ data }: { data: IncidentReadiness }) {
   const titles = new Map(data.tasks.map(t => [t.taskId, t.title]));
   return <section className="task-card" aria-label="Action readiness">
-    <h3>What happens next?</h3>
-    <p className="panel-intro">Server-checked prerequisites, not permission to act or a site-safety assessment.</p>
+    <h3>Scene status & final handoff</h3>
+    <p className="panel-intro">These records track real-world outcomes. Notifications, scheduling, database lookups and reports continue automatically while information is outstanding.</p>
     {(['handoff', 'closure'] as const).map(key => {
       const gate = data[key];
       return <details key={key} open={gate.state !== 'done'}>

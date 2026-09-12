@@ -142,7 +142,7 @@ export default function SlackThread({
           {connected
             ? snapshot.mode === "fixture"
               ? "Persisted synthetic source messages. No messages were sent to Slack in offline mode."
-              : "Human source messages from the backend. Open Slack for the full conversation and approvals."
+              : "Participant observations from the shared thread. Add details in Slack; agents process updates automatically."
             : "A preview of the incident conversation. These messages are scripted for the demo."}
         </span>
       </div>
