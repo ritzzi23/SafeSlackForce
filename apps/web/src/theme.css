@@ -1,0 +1,843 @@
+/* Semantic colors are shared by the workspace, dialogs, and live empty state. */
+:root {
+  color-scheme: light;
+  --page: #f5f7f4;
+  --surface: #ffffff;
+  --surface-soft: #f0f4ee;
+  --surface-hover: #e7eee4;
+  --ink: #27382f;
+  --muted: #637261;
+  --line: #e0e7de;
+  --accent: #28664e;
+  --accent-soft: #e8f0e7;
+  --accent-ink: #35503b;
+  --accent-contrast: #ffffff;
+  --success: #52765b;
+  --success-soft: #e8f0e7;
+  --success-line: #b7cab8;
+  --green: var(--success);
+  --warning: #946324;
+  --warning-soft: #fff6e6;
+  --danger: #b3634c;
+  --danger-soft: #fcf0eb;
+  --shadow: 0 12px 40px #283b2910;
+  --focus: #638f5e;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  color: #f2eee6;
+  background: #100f0e;
+  --page: #100f0e;
+  --surface: #181715;
+  --surface-soft: #211f1c;
+  --surface-hover: #2a2723;
+  --ink: #f2eee6;
+  --muted: #aaa298;
+  --line: #38342e;
+  --accent: #c9ad78;
+  --accent-soft: #2d271d;
+  --accent-ink: #e4cca0;
+  --accent-contrast: #1b1711;
+  --success: #91af8b;
+  --success-soft: #202b22;
+  --success-line: #425745;
+  --green: var(--success);
+  --warning: #dda15a;
+  --warning-soft: #352719;
+  --danger: #df9785;
+  --danger-soft: #382421;
+  --shadow: 0 18px 52px #00000052;
+  --focus: #d5b978;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+.theme-toggle:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.theme-toggle svg {
+  color: var(--accent);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.mini-agent,
+.task-department {
+  color: var(--department, var(--accent));
+}
+
+:root[data-theme="dark"] :is(.app-shell, .office, .waiting-workspace) {
+  background: var(--page);
+  color: var(--ink);
+}
+:root[data-theme="dark"]
+  :is(
+    .topbar,
+    .rail,
+    .inspector,
+    .composer-area,
+    .waiting-header,
+    .waiting-panel,
+    .modal,
+    .incident-strip
+  ) {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+}
+:root[data-theme="dark"]
+  :is(
+    .task-card,
+    .response-action,
+    .connection-status,
+    .slack-channel-notice,
+    .suggested-questions button
+  ) {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .brand-mark {
+  color: var(--accent-contrast);
+  background: linear-gradient(145deg, #d4bb87, var(--accent));
+  box-shadow:
+    0 7px 22px #0000003d,
+    inset 0 1px #fff6d938;
+}
+:root[data-theme="dark"] .context-card {
+  background: linear-gradient(135deg, #27241f, #1d1b18);
+  border-color: #423c33;
+}
+:root[data-theme="dark"]
+  :is(
+    .composer,
+    .modal input,
+    .voice-update textarea,
+    .office-directory input,
+    .office-directory select,
+    .incident-share input,
+    .incident-strip select
+  ) {
+  color: var(--ink);
+  background: var(--page);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .composer textarea {
+  color: var(--ink);
+}
+:root[data-theme="dark"] :is(input, textarea)::placeholder {
+  color: #8f887f;
+}
+:root[data-theme="dark"]
+  :is(
+    .composer:focus-within,
+    .suggested-questions button:hover,
+    .overview-metric:hover
+  ) {
+  border-color: var(--accent);
+}
+:root[data-theme="dark"] .composer:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+:root[data-theme="dark"]
+  :is(button, a, input, textarea, select, summary):focus-visible {
+  outline-color: var(--focus);
+}
+:root[data-theme="dark"]
+  :is(
+    .brand-divider,
+    .topbar-divider,
+    .rail-line,
+    .scene-controls > span,
+    .conversation-date > span,
+    .stage:after
+  ) {
+  background: var(--line);
+}
+:root[data-theme="dark"]
+  :is(
+    .panel-tabs,
+    .inspector-footer,
+    .voice-update,
+    .timeline-event,
+    .office.room-focus .demo-control,
+    .waiting-counts,
+    .slack-link
+  ) {
+  border-color: var(--line);
+}
+:root[data-theme="dark"]
+  :is(
+    .brand-caption,
+    .environment,
+    .icon-button,
+    .rail-button,
+    .rail-agent,
+    .breadcrumb,
+    .office-heading p,
+    .incident-meta,
+    .incident-location,
+    .scene-caption > span:last-child,
+    .scene-legend span,
+    .scene-controls button,
+    .team-pulse p,
+    .demo-heading > span,
+    .stage,
+    .demo-disclosure,
+    .inspector-heading,
+    .team-count,
+    .agent-profile p,
+    .agent-profile h2 svg,
+    .profile-menu,
+    .team-switcher button,
+    .panel-tabs button,
+    .conversation-date,
+    .message-byline > span:last-child,
+    .context-card > div,
+    .composer-bottom > span,
+    .composer-note,
+    .task-owner small,
+    .task-demo-note,
+    .timeline-event time,
+    .slack-channel-heading p,
+    .slack-channel-status,
+    .slack-message-head time,
+    .slack-loading,
+    .response-board-heading span,
+    .response-action small,
+    .waiting-heading > p,
+    .waiting-heading > span,
+    .waiting-counts span,
+    .waiting-agent p,
+    .scene-loading,
+    .scene-fallback
+  ) {
+  color: var(--muted);
+}
+:root[data-theme="dark"]
+  :is(
+    .message-body,
+    .context-card p,
+    .panel-intro,
+    .task-owner,
+    .timeline-event p,
+    .slack-message p,
+    .modal p,
+    .modal label,
+    .modal ul,
+    .voice-update p,
+    .voice-update label,
+    .waiting-panel > p,
+    .join-incident-banner span,
+    .empty-state
+  ) {
+  color: #c8c0b5;
+}
+:root[data-theme="dark"]
+  :is(
+    .slack-link,
+    .context-card > button,
+    .source,
+    .inspector-footer,
+    .panel-section-heading > span,
+    .task-action,
+    .empty-state h3,
+    .live-footer,
+    .live-footer button,
+    .text-button,
+    .share-actions button,
+    .share-actions a,
+    .response-board-heading,
+    .waiting-header > span,
+    .waiting-eyebrow,
+    .waiting-connection,
+    .waiting-agent small,
+    .mobile-toggle
+  ) {
+  color: var(--accent);
+}
+:root[data-theme="dark"] :is(.message-body strong, .waiting-counts strong) {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .field-hint {
+  color: var(--muted) !important;
+}
+:root[data-theme="dark"] :is(.icon-button:hover, .scene-controls button:hover) {
+  background: var(--surface-hover);
+}
+:root[data-theme="dark"]
+  :is(
+    .rail-button.active,
+    .rail-button.current,
+    .scene-controls button[aria-pressed="true"],
+    .office-badge,
+    .mini-agent,
+    .modal-emblem,
+    .waiting-agent > span,
+    .task-owner > span,
+    .panel-tabs b,
+    .join-incident-banner,
+    .user-message .message-body
+  ) {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+}
+:root[data-theme="dark"] .user-avatar {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: var(--surface);
+}
+:root[data-theme="dark"] .incident-strip {
+  border-left-color: var(--accent);
+}
+:root[data-theme="dark"] .incident-meta .incident-state {
+  color: var(--accent);
+}
+:root[data-theme="dark"] :is(.mini-agent, .task-department) {
+  color: color-mix(in srgb, var(--department, var(--accent)) 48%, white);
+}
+:root[data-theme="dark"] .scene-controls {
+  background: #181715ed;
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+:root[data-theme="dark"] .scene-mode i {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 12%, transparent);
+}
+:root[data-theme="dark"] .tiny-square {
+  border-color: var(--muted);
+}
+:root[data-theme="dark"] :is(.rail-agent.selected, .agent-portrait) {
+  background: color-mix(in srgb, var(--department) 13%, var(--surface));
+  color: color-mix(in srgb, var(--department) 44%, white);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root[data-theme="dark"] .agent-portrait > i {
+  border-color: var(--surface);
+}
+:root[data-theme="dark"] .team-switcher {
+  background: var(--page);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] .team-switcher button.selected {
+  background: var(--surface-hover);
+  color: color-mix(in srgb, var(--department) 44%, white);
+  box-shadow: 0 5px 16px #0000002b;
+}
+:root[data-theme="dark"] .panel-tabs button[aria-selected="true"] {
+  color: var(--accent-ink);
+}
+:root[data-theme="dark"] .panel-tabs button[aria-selected="true"]:after {
+  background: var(--accent);
+}
+:root[data-theme="dark"] .panel-content {
+  scrollbar-color: #4b463e transparent;
+}
+:root[data-theme="dark"] :is(.primary-button, .composer-bottom button) {
+  background: linear-gradient(145deg, #d4bb87, var(--accent));
+  color: var(--accent-contrast);
+  box-shadow:
+    0 8px 22px #00000032,
+    inset 0 1px #fff6d942;
+}
+:root[data-theme="dark"] .status-pill {
+  color: var(--muted);
+  background: var(--surface-hover);
+  border-color: var(--line);
+}
+:root[data-theme="dark"] :is(.status-pill.working, .status-pill.in_progress) {
+  color: var(--success);
+  background: var(--success-soft);
+  border-color: var(--success-line);
+}
+:root[data-theme="dark"]
+  :is(
+    .status-pill.waiting,
+    .status-pill.assigned,
+    .task-card.needs-review,
+    .response-action.simulated
+  ) {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: #654b2f;
+}
+:root[data-theme="dark"]
+  :is(
+    .status-pill.blocked,
+    .status-pill.needs_review,
+    .status-pill.failed,
+    .inline-error,
+    .modal-error,
+    .message-error,
+    .response-action.blocked,
+    .response-action.uncertain
+  ) {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: #674139;
+}
+:root[data-theme="dark"]
+  :is(
+    .blocker-note,
+    .response-action.simulated small,
+    .response-action.blocked small,
+    .response-action.uncertain small
+  ) {
+  color: var(--warning);
+}
+:root[data-theme="dark"] .stage > span {
+  border-color: #514b42;
+}
+:root[data-theme="dark"] .stage.current {
+  color: var(--accent-ink);
+}
+:root[data-theme="dark"] .stage.current > span {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+:root[data-theme="dark"] .stage.past > span {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: #55472f;
+}
+:root[data-theme="dark"] .timeline-dot {
+  background: var(--surface);
+  border-color: #766a55;
+}
+:root[data-theme="dark"] .timeline-dot.latest {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+:root[data-theme="dark"] .slack-hash {
+  background: #3d3041;
+  color: #d8badd;
+}
+:root[data-theme="dark"] .slack-person {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .slack-message-head b {
+  background: var(--surface-hover);
+  color: var(--muted);
+}
+:root[data-theme="dark"] .slack-reply-count {
+  color: #9fc6c0;
+}
+:root[data-theme="dark"] .slack-open-button {
+  color: #d8badd;
+  background: #342c39;
+  border-color: #584760;
+}
+:root[data-theme="dark"] .modal-backdrop {
+  background: #070605bd;
+}
+:root[data-theme="dark"] .modal {
+  box-shadow: 0 30px 100px #00000075;
+}
+:root[data-theme="dark"] .office.mobile-visible + .inspector .mobile-toggle {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+/* Dark scene labels use warm graphite; department and status colors stay semantic. */
+:root[data-theme="dark"] .pod-label {
+  color: var(--ink);
+  background: linear-gradient(145deg, #25231ff7, #171614f2);
+  border-color: #ffffff24;
+  box-shadow:
+    0 16px 40px #00000052,
+    inset 0 1px #ffffff12;
+}
+:root[data-theme="dark"] .pod-label:hover,
+:root[data-theme="dark"] .pod-label:focus-visible {
+  background: linear-gradient(145deg, #2e2a25fa, #1d1b18f7);
+  border-color: #ffffff42;
+  box-shadow:
+    0 20px 46px #00000066,
+    inset 0 1px #ffffff16;
+}
+:root[data-theme="dark"] .pod-label.selected {
+  background: linear-gradient(145deg, #332d23fa, #211e19f7);
+  border-color: var(--department);
+  box-shadow:
+    0 0 0 2px #ffffff12,
+    0 0 0 4px color-mix(in srgb, var(--department) 18%, transparent),
+    0 20px 44px #00000061;
+}
+:root[data-theme="dark"] .pod-label.central {
+  background: linear-gradient(145deg, #292721f7, #1b1916f2);
+  border-color: #ffffff30;
+}
+:root[data-theme="dark"] .pod-label.central.selected {
+  border-color: var(--department);
+}
+:root[data-theme="dark"] .pod-label::after {
+  opacity: 0.055;
+}
+:root[data-theme="dark"] .pod-eyebrow,
+:root[data-theme="dark"] .pod-label .pod-status,
+:root[data-theme="dark"] .pod-cta {
+  color: #aaa298;
+}
+:root[data-theme="dark"] .pod-eyebrow small,
+:root[data-theme="dark"] .pod-label .pod-status em {
+  color: #8f887f;
+}
+:root[data-theme="dark"] .pod-title,
+:root[data-theme="dark"] .pod-cta > span,
+:root[data-theme="dark"] .pod-label.selected .pod-cta {
+  color: var(--ink);
+}
+:root[data-theme="dark"] .pod-label .pod-status {
+  border-top-color: #ffffff17;
+}
+:root[data-theme="dark"] .floor-label {
+  color: #4f4941;
+  background: #eee7dac9;
+  border-color: #ffffff5e;
+  box-shadow: 0 5px 15px #0000003b;
+}
+
+@media (max-width: 980px) {
+  .theme-toggle {
+    width: 36px;
+    padding: 8px;
+  }
+  .theme-toggle > span {
+    display: none;
+  }
+}
+
+:root[data-theme="dark"] .pod-label.has-active-run {
+  border-color: color-mix(in srgb, var(--department) 62%, #ffffff52);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--department) 10%, transparent),
+    0 18px 44px #00000061,
+    inset 0 1px #ffffff12;
+}
+:root[data-theme="dark"] .flow-receipt {
+  background: color-mix(in srgb, var(--surface) 91%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+}
+
+/* Atmospheric dark finish: layered graphite, bronze light, and muted violet depth. */
+:root[data-theme="dark"] {
+  --luxe-bronze: #c9ad78;
+  --luxe-violet: #8d7ca2;
+  --luxe-slate: #718792;
+  --surface-raised: #201e1b;
+  --surface-deep: #131210;
+}
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app-shell {
+  background:
+    radial-gradient(circle at 14% -8%, #c9ad7815 0, transparent 31%),
+    radial-gradient(circle at 88% 5%, #8d7ca212 0, transparent 28%),
+    linear-gradient(145deg, #12110f 0%, var(--page) 48%, #0d0c0b 100%);
+}
+:root[data-theme="dark"] .office {
+  background:
+    radial-gradient(circle at 18% 0%, #c9ad780d 0, transparent 30%),
+    radial-gradient(circle at 92% 18%, #8d7ca20c 0, transparent 26%),
+    linear-gradient(180deg, #12110f 0%, var(--page) 36%);
+}
+:root[data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, #211f1ceb, #171614f5);
+  border-color: #3f3930;
+  box-shadow:
+    0 1px 0 #d8bc8320,
+    0 18px 46px #00000047;
+}
+:root[data-theme="dark"] .topbar::after {
+  background: linear-gradient(
+    90deg,
+    transparent 4%,
+    #c9ad7840 25%,
+    #8d7ca230 60%,
+    transparent 96%
+  );
+}
+:root[data-theme="dark"] .rail {
+  background:
+    radial-gradient(circle at 50% 8%, #c9ad780b, transparent 22%),
+    linear-gradient(180deg, #1c1a18, #151412);
+  border-color: #38342e;
+  box-shadow:
+    1px 0 0 #ffffff08,
+    18px 0 48px #00000038;
+}
+:root[data-theme="dark"] .inspector {
+  background:
+    radial-gradient(circle at 100% 0%, #8d7ca20d, transparent 24%),
+    linear-gradient(180deg, #1b1917 0%, #171614 42%, #141311 100%);
+  border-color: #3d3831;
+  box-shadow:
+    -1px 0 #ffffff08,
+    -22px 0 58px #00000042;
+}
+:root[data-theme="dark"] :is(.theme-toggle, .icon-button, .environment) {
+  background: linear-gradient(145deg, #24211e, #191816);
+  border-color: #403a32;
+  box-shadow:
+    0 7px 20px #00000025,
+    inset 0 1px #ffffff10;
+}
+:root[data-theme="dark"] :is(.theme-toggle, .icon-button):hover {
+  background: linear-gradient(145deg, #2b2824, #1d1b18);
+  border-color: #66563d;
+  box-shadow:
+    0 10px 24px #00000035,
+    inset 0 1px #ffffff16;
+}
+:root[data-theme="dark"] .workspace-dot {
+  background: var(--accent);
+  box-shadow:
+    0 0 0 3px #c9ad7812,
+    0 0 12px #c9ad7852;
+}
+:root[data-theme="dark"] :is(.rail-button.active, .rail-button.current) {
+  background: linear-gradient(145deg, #352d21, #231f19);
+  color: var(--accent-ink);
+  border-color: #51452f;
+  box-shadow:
+    0 9px 22px #0000002e,
+    inset 0 1px #f1d49b1b;
+}
+:root[data-theme="dark"] .incident-strip {
+  background:
+    radial-gradient(circle at 96% 0%, #c9ad7811, transparent 32%),
+    linear-gradient(135deg, #211f1c, #181715 72%);
+  border-color: #403a32;
+  border-left-color: var(--accent);
+  box-shadow:
+    0 16px 40px #00000038,
+    inset 0 1px #ffffff0d;
+}
+:root[data-theme="dark"] .overview-metric {
+  background: linear-gradient(145deg, #23211e 0%, #1a1917 62%, #171614 100%);
+  border-color: #3d3831;
+  box-shadow:
+    0 13px 32px #00000032,
+    inset 0 1px #ffffff0d;
+}
+:root[data-theme="dark"] .overview-metric::before {
+  content: "";
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  top: -48px;
+  right: -30px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.065;
+  filter: blur(2px);
+  pointer-events: none;
+}
+:root[data-theme="dark"] .overview-metric.attention {
+  background:
+    radial-gradient(circle at 100% 0%, #dda15a14, transparent 35%),
+    linear-gradient(145deg, #282219, #1a1815 70%);
+  border-color: #60482c;
+}
+:root[data-theme="dark"] .metric-icon,
+:root[data-theme="dark"] .incident-indicator {
+  background: linear-gradient(145deg, #30291f, #211d18);
+  border-color: #4d412e;
+  box-shadow:
+    0 8px 20px #00000030,
+    inset 0 1px #f4d89f17;
+}
+:root[data-theme="dark"] .scene-area {
+  border-color: #574a36;
+  background: #0f0e0d;
+  box-shadow:
+    0 34px 90px #00000078,
+    0 0 0 1px #c9ad780b,
+    inset 0 1px #f0d69e28,
+    inset 0 -80px 110px #0000003b;
+}
+:root[data-theme="dark"] .scene-area::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px #f0d69e24,
+    inset 0 0 70px #00000024;
+  pointer-events: none;
+}
+:root[data-theme="dark"]
+  :is(
+    .scene-caption,
+    .scene-mode,
+    .scene-legend,
+    .scene-controls,
+    .flow-receipt
+  ) {
+  background: linear-gradient(145deg, #26231fe8, #151412ed);
+  border-color: #4a4236;
+  box-shadow:
+    0 16px 38px #00000052,
+    inset 0 1px #ffffff12;
+  backdrop-filter: blur(18px) saturate(1.16);
+}
+:root[data-theme="dark"] .scene-caption-icon {
+  background: linear-gradient(145deg, #332b20, #211d18);
+  border-color: #554831;
+  color: var(--accent-ink);
+  box-shadow:
+    0 8px 20px #00000038,
+    inset 0 1px #f2d49b1b;
+}
+:root[data-theme="dark"]
+  :is(.scene-caption, .scene-mode, .scene-legend, .scene-controls) {
+  z-index: 3;
+}
+:root[data-theme="dark"] .flow-receipt {
+  z-index: 4;
+  background:
+    radial-gradient(circle at 100% 0%, #8d7ca218, transparent 36%),
+    linear-gradient(145deg, #28241fef, #171513f2);
+}
+:root[data-theme="dark"] .team-pulse {
+  background:
+    radial-gradient(circle at 94% 0%, #8d7ca20c, transparent 32%),
+    linear-gradient(120deg, #2b251c, #1b1916 72%);
+  border-color: #4d422f;
+  box-shadow:
+    0 15px 38px #00000038,
+    inset 0 1px #f0d49a10;
+}
+:root[data-theme="dark"] .team-pulse.attention {
+  background:
+    radial-gradient(circle at 94% 0%, #dda15a12, transparent 34%),
+    linear-gradient(120deg, #2c2318, #1b1814 72%);
+  border-color: #624a2d;
+}
+:root[data-theme="dark"] :is(.demo-control, .waiting-panel) {
+  background:
+    radial-gradient(circle at 100% 0%, #8d7ca20a, transparent 30%),
+    linear-gradient(145deg, #201e1b, #171614);
+  border-color: #3e3932;
+  box-shadow:
+    0 18px 44px #00000038,
+    inset 0 1px #ffffff0c;
+}
+:root[data-theme="dark"] .agent-profile {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--department) 18%, transparent),
+      transparent 36%
+    ),
+    linear-gradient(135deg, #24211e, #191715 72%);
+  border-color: color-mix(in srgb, var(--department) 24%, #403a32);
+  box-shadow:
+    0 17px 42px #00000040,
+    inset 0 1px #ffffff10;
+}
+:root[data-theme="dark"] .team-switcher {
+  background: linear-gradient(145deg, #12110f, #1c1a17);
+  border-color: #3d3831;
+  box-shadow:
+    inset 0 1px #ffffff08,
+    0 12px 30px #0000002e;
+}
+:root[data-theme="dark"] .team-switcher button.selected {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--department) 13%, #2a2723),
+    #211f1c
+  );
+  border-color: color-mix(in srgb, var(--department) 22%, #403a32);
+  box-shadow:
+    0 8px 20px #00000032,
+    inset 0 1px #ffffff0f;
+}
+:root[data-theme="dark"]
+  :is(
+    .context-card,
+    .task-card:not(.needs-review),
+    .response-action:not(.simulated):not(.blocked):not(.uncertain),
+    .slack-channel-notice
+  ) {
+  background:
+    radial-gradient(circle at 100% 0%, #8d7ca209, transparent 32%),
+    linear-gradient(145deg, #23211e, #191816);
+  border-color: #3e3932;
+  box-shadow:
+    0 13px 32px #00000030,
+    inset 0 1px #ffffff0c;
+}
+:root[data-theme="dark"]
+  :is(.composer, .suggested-questions button, .mobile-incident-summary) {
+  background: linear-gradient(145deg, #211f1c, #151412);
+  border-color: #3d3831;
+  box-shadow:
+    0 10px 28px #0000002e,
+    inset 0 1px #ffffff0c;
+}
+:root[data-theme="dark"] .composer:focus-within {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px #c9ad7815,
+    0 16px 40px #00000040,
+    inset 0 1px #ffffff10;
+}
+:root[data-theme="dark"] .modal {
+  background:
+    radial-gradient(circle at 100% 0%, #8d7ca214, transparent 30%),
+    linear-gradient(145deg, #24211e, #151412 74%);
+  border-color: #514632;
+  box-shadow:
+    0 42px 130px #0000008a,
+    0 0 0 1px #c9ad7809,
+    inset 0 1px #f1d69f18;
+}
+:root[data-theme="dark"] .pod-work-detail,
+:root[data-theme="dark"] .pod-task-detail em {
+  background: #ffffff08;
+  border-color: #ffffff13;
+}
+:root[data-theme="dark"] ::selection {
+  background: #c9ad7842;
+  color: var(--ink);
+}
+:root[data-theme="dark"] :is(.office, .panel-content, .waiting-workspace) {
+  scrollbar-color: #615442 #171513;
+}
+
+@media (max-width: 760px) {
+  :root[data-theme="dark"] .scene-area {
+    box-shadow:
+      0 24px 60px #00000066,
+      inset 0 1px #f0d69e20,
+      inset 0 -60px 85px #00000032;
+  }
+  :root[data-theme="dark"] .inspector {
+    box-shadow: none;
+  }
+}

@@ -80,6 +80,112 @@ async function fill(selector: string, value: string) {
 async function update(subscription: Subscription, value: IncidentSnapshot) {
   await act(async () => subscription.update({ eventId: `${value.incidentId}:${value.cursor}`, cursor: value.cursor, kind: 'snapshot.updated', snapshot: value }));
 }
+function tab(label: string) {
+  const found = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')]
+    .find(element => element.querySelector('span')?.textContent === label);
+  if (!found) throw new Error(`Missing tab: ${label}`);
+  return found;
+}
+function metric(label: string) {
+  const found = [...container.querySelectorAll<HTMLButtonElement>('[aria-label="Incident at a glance"] button')]
+    .find(element => [...element.querySelectorAll('span')].some(span => span.textContent === label));
+  if (!found) throw new Error(`Missing incident metric: ${label}`);
+  return found;
+}
+function activePanel(label: string) {
+  const selected = tab(label);
+  expect(selected.getAttribute('aria-selected')).toBe('true');
+  expect(selected.tabIndex).toBe(0);
+  expect(container.querySelectorAll('[role="tab"][aria-selected="true"]')).toHaveLength(1);
+  expect(container.querySelectorAll('[role="tab"][tabindex="0"]')).toHaveLength(1);
+  const panel = document.getElementById(selected.getAttribute('aria-controls')!);
+  expect(panel?.getAttribute('role')).toBe('tabpanel');
+  expect(panel?.getAttribute('aria-labelledby')).toBe(selected.id);
+  return panel!;
+}
+
+it('moves tab focus with arrow and boundary keys and exposes the associated Directory panel', async () => {
+  vi.mocked(api.health).mockRejectedValue(new Error('Standalone preview'));
+  await mount();
+  activePanel('Chat');
+  tab('Chat').focus();
+
+  const navigate = async (key: string, label: string) => {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    await act(async () => document.activeElement!.dispatchEvent(event));
+    expect(event.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(tab(label));
+    return activePanel(label);
+  };
+
+  await navigate('ArrowRight', 'Tasks');
+  expect((await navigate('ArrowRight', 'Slack')).textContent).toContain('Slack sources');
+  await navigate('ArrowRight', 'Activity');
+  expect((await navigate('End', 'Directory')).textContent).toContain('Office directory');
+  await navigate('ArrowRight', 'Chat');
+  await navigate('ArrowLeft', 'Directory');
+  await navigate('Home', 'Chat');
+  expect(tab('Directory').tabIndex).toBe(-1);
+});
+
+it('updates the incident summary when evidence conflicts and directs attention to the task review', async () => {
+  vi.mocked(api.health).mockRejectedValue(new Error('Standalone preview'));
+  await mount();
+  expect(metric('Need review').querySelector('strong')?.textContent).toBe('0');
+  await click('Demo stage 4: Conflicting evidence');
+  expect(metric('Need review').querySelector('strong')?.textContent).toBe('1');
+  expect(metric('Open tasks').querySelector('strong')?.textContent).toBe('3');
+  expect(container.textContent).toContain('1 task needs your attention');
+
+  await click('Review tasks');
+  const panel = activePanel('Tasks');
+  expect(panel.textContent).toContain('Confirm affected area status');
+  expect(panel.textContent).toContain('Two witness accounts disagree about occupancy.');
+  expect(panel.textContent).toContain('needs review');
+
+  await act(async () => metric('Agents working').click());
+  expect(activePanel('Activity').textContent).toContain('Witness accounts conflict. Area confirmation requires review.');
+  await act(async () => metric('Need review').click());
+  activePanel('Tasks');
+});
+
+it('shows an empty task summary at the first report and routes the next step to the Commander', async () => {
+  vi.mocked(api.health).mockRejectedValue(new Error('Standalone preview'));
+  await mount();
+  await click('Demo stage 1: Report received');
+  expect(metric('Open tasks').querySelector('strong')?.textContent).toBe('0');
+  expect(metric('Need review').querySelector('strong')?.textContent).toBe('0');
+  expect(container.textContent).toContain('Start with the incident report');
+  await click('Chat with Evidence');
+  await act(async () => metric('Open tasks').click());
+  expect(activePanel('Tasks').textContent).toContain('No tasks assigned yet');
+
+  await click('Ask Commander');
+  activePanel('Chat');
+  expect(container.querySelector('[aria-label="Message Commander"]')).not.toBeNull();
+  expect(container.querySelector('[aria-label="Message Evidence"]')).toBeNull();
+  expect(api.ask).not.toHaveBeenCalled();
+});
+
+it('keeps unfinished work visible after handoff and opens its assigned tasks', async () => {
+  vi.mocked(api.health).mockRejectedValue(new Error('Standalone preview'));
+  await mount();
+  await click('Demo stage 4: Conflicting evidence');
+  await click('Demo stage 5: Handoff accepted');
+  expect(metric('Open tasks').querySelector('strong')?.textContent).toBe('2');
+  expect(metric('Need review').querySelector('strong')?.textContent).toBe('0');
+  expect(container.textContent).toContain('2 tasks remain open. A handoff does not confirm that physical work is complete.');
+  expect(button('Download handoff report').disabled).toBe(false);
+
+  await click('View open tasks');
+  const panel = activePanel('Tasks');
+  expect(panel.textContent).toContain('2 open');
+  const outstanding = [...panel.querySelectorAll('h3')]
+    .find(heading => heading.textContent === 'Confirm external service contact')?.parentElement;
+  expect(outstanding?.textContent).toContain('assigned');
+  expect(outstanding?.textContent).toContain('Ritesh');
+  expect(outstanding?.textContent).not.toContain('completed');
+});
 
 it('keeps a newer SSE snapshot when an older refresh request finishes later', async () => {
   await mount();

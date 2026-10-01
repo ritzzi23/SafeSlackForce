@@ -1,0 +1,11 @@
+.env
+.env.*
+**/.env
+**/.env.*
+.git
+**/node_modules
+**/dist
+data
+coverage
+*.log
+.DS_Store

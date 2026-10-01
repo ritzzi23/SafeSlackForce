@@ -3,7 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f6f5ef" />
+    <meta name="theme-color" content="#f5f7f4" />
+    <script>
+      // Set appearance before the stylesheet and application can paint.
+      (() => {
+        let preference;
+        try { preference = localStorage.getItem("safeslackforce-theme"); } catch {}
+        const saved = preference === "light" || preference === "dark";
+        const theme = saved ? preference :
+          window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+        if (saved) document.documentElement.dataset.themePreference = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "dark" ? "#111b19" : "#f5f7f4";
+      })();
+    </script>
     <meta
       name="description"
       content="SafeSlackForce — your incident response team, in one living workspace."

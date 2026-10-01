@@ -8,7 +8,11 @@
     "@slack/types": "^2.22.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "pg": "8.23.1",
     "sql.js": "^1.13.0",
     "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
   }
 }

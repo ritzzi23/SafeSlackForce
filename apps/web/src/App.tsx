@@ -7,7 +7,6 @@ import {
   BookOpen,
   Check,
   CheckCheck,
-  ChevronDown,
   ChevronRight,
   CircleHelp,
   Command,
@@ -49,6 +48,7 @@ import OfficeDirectory from "./OfficeDirectory";
 import IncidentShare from "./IncidentShare";
 import ResponseBoard from "./ResponseBoard";
 import WaitingOffice from "./WaitingOffice";
+import ThemeToggle from "./ThemeToggle";
 import { PROJECT_NAME, DEMO_REPORT_FILENAME } from "./branding";
 const OfficeScene = lazy(() => import("./OfficeScene"));
 type Chat = {
@@ -65,6 +65,15 @@ const icons = {
   evidence: ShieldCheck,
   communications: Radio,
   records: FileText,
+};
+const panelNames = { chat: "Chat", tasks: "Tasks", thread: "Slack", activity: "Activity", office: "Directory" };
+const panelIds = ["chat", "tasks", "thread", "activity", "office"] as const;
+const agentExplanations: Record<AgentId, string> = {
+  commander: "Coordinates the specialists and keeps the response on track.",
+  procedure: "Finds the right procedure and turns it into clear next steps.",
+  evidence: "Checks the facts and flags information that needs a second look.",
+  communications: "Keeps responders informed and tracks who has acknowledged.",
+  records: "Builds the timeline and prepares a report for the next team.",
 };
 function DeptIcon({ id, size = 18 }: { id: AgentId; size?: number }) {
   const Icon = icons[id];
@@ -107,13 +116,13 @@ export default function App() {
   const [tab, setTab] = useState<"chat" | "tasks" | "activity" | "thread" | "office">(
     "chat",
   );
-  const [roomFocus, setRoomFocus] = useState(true);
+  const [roomFocus, setRoomFocus] = useState(false);
   const [step, setStep] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [live, setLive] = useState(false);
   const [transport, setTransport] = useState("disconnected");
   const [handoff, setHandoff] = useState<StreamUpdate["handoff"]>();
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(1.6);
   const [reset, setReset] = useState(0);
   const [input, setInput] = useState("");
   const [chats, setChats] = useState<Chat[]>([]);
@@ -174,6 +183,15 @@ export default function App() {
     (t) => !["completed", "cancelled"].includes(t.status),
   );
   const working = snapshot.agents.filter((a) => a.status === "working").length;
+  const nextAction = blockers.length
+    ? { title: `${blockers.length} ${blockers.length === 1 ? "task needs" : "tasks need"} your attention`, description: "Review the flagged tasks and their sources. Add your clarification in Slack.", action: "Review tasks", panel: "tasks" as const }
+    : snapshot.status === "closed"
+      ? { title: "This incident is closed", description: "Review the recorded actions or download the latest handoff report.", action: "View timeline", panel: "activity" as const }
+      : snapshot.status === "handed_over"
+        ? { title: "Handoff accepted. Keep track of the follow-through.", description: `${openTasks.length} tasks remain open. A handoff does not confirm that physical work is complete.`, action: "View open tasks", panel: "tasks" as const }
+        : openTasks.length
+          ? { title: "Your team has a plan. See what happens next.", description: "Agents organize the response. Assigned people confirm actions in Slack.", action: "View tasks", panel: "tasks" as const }
+          : { title: "Start with the incident report", description: "Ask the Commander for a summary, then follow the team as tasks are assigned.", action: "Ask Commander", panel: "chat" as const };
   useEffect(() => {
     let cancelled = false;
     const request = ++loadRequest.current;
@@ -371,6 +389,11 @@ export default function App() {
   function select(id: AgentId) {
     setSelected(id);
     setTab("chat");
+    setMobileScene(false);
+  }
+  function showPanel(panel: typeof tab) {
+    setTab(panel);
+    setMobileScene(false);
   }
   async function send(text = input) {
     if (!text.trim() || pending || sendLock.current || loadingIncident || connecting || (live && !paired)) return;
@@ -559,6 +582,7 @@ export default function App() {
   const agentChats = chats.filter((c) => c.agent === selected);
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#response-panel">Skip to response panel</a>
       <header className="topbar">
         <a className="brand" href="/" aria-label={`${PROJECT_NAME} home`}>
           <span className="brand-mark">
@@ -567,7 +591,7 @@ export default function App() {
           </span>
           <span className="brand-name">{PROJECT_NAME}</span>
           <span className="brand-divider" />
-          <span className="brand-caption">THE AGENT WORKSPACE</span>
+          <span className="brand-caption">INCIDENT RESPONSE, TOGETHER</span>
         </a>
         <div className="topbar-right">
           <span
@@ -580,6 +604,7 @@ export default function App() {
                 : "LIVE WORKSPACE"
               : "INTERACTIVE DEMO"}
           </span>
+          <ThemeToggle />
           <button
             className="icon-button help"
             aria-label="About this workspace"
@@ -594,33 +619,44 @@ export default function App() {
       <div className="workspace">
         <nav className="rail" aria-label="Workspace navigation">
           <button
-            className="rail-button active"
+            className={`rail-button ${tab === "chat" ? "active" : ""}`}
             aria-label="Office overview"
+            title="Office overview"
+            aria-pressed={tab === "chat"}
             onClick={() => {
               setSelected("commander");
               setReset((n) => n + 1);
               setTab("chat");
+              setMobileScene(true);
             }}
           >
             <Layers3 size={21} />
+            <span>Overview</span>
           </button>
           <button
             className={`rail-button ${tab === "tasks" ? "current" : ""}`}
             aria-label="Incident tasks"
-            onClick={() => setTab("tasks")}
+            title="Incident tasks"
+            aria-pressed={tab === "tasks"}
+            onClick={() => showPanel("tasks")}
           >
             <ListTodo size={21} />
+            <span>Tasks</span>
             {blockers.length > 0 && <i />}
           </button>
           <button
             className={`rail-button ${tab === "activity" ? "current" : ""}`}
             aria-label="Incident timeline"
-            onClick={() => setTab("activity")}
+            title="Incident timeline"
+            aria-pressed={tab === "activity"}
+            onClick={() => showPanel("activity")}
           >
             <AudioLines size={21} />
+            <span>Timeline</span>
           </button>
-          <button className={`rail-button ${tab === "office" ? "current" : ""}`} aria-label="Office reference database" title="Office reference database" onClick={() => setTab("office")}><BookOpen size={21} /></button>
+          <button className={`rail-button ${tab === "office" ? "current" : ""}`} aria-label="Office reference database" title="Office reference database" aria-pressed={tab === "office"} onClick={() => showPanel("office")}><BookOpen size={21} /><span>Directory</span></button>
           <span className="rail-line" />
+          <span className="rail-section-label">TEAM</span>
           {agentIds.map((id) => (
             <button
               key={id}
@@ -632,6 +668,7 @@ export default function App() {
                 } as React.CSSProperties
               }
               aria-label={`Select ${departments[id].name}`}
+              aria-pressed={selected === id}
               title={departments[id].name}
               onClick={() => select(id)}
             >
@@ -641,36 +678,35 @@ export default function App() {
           <button
             className="rail-button rail-bottom"
             aria-label="Connect backend"
+            title="Workspace settings"
             onClick={() => setModal("connect")}
           >
             <Settings2 size={20} />
+            <span>Settings</span>
           </button>
         </nav>
         <main
           className={`office ${mobileScene ? "mobile-visible" : ""} ${roomFocus ? "room-focus" : ""}`}
         >
+          <button className="mobile-office-close" onClick={() => setMobileScene(false)}><X size={15} /> Back to team</button>
           <div className="office-heading">
             <div className="breadcrumb">
-              WORKSPACE <ChevronRight size={12} /> INCIDENT RESPONSE
+              <span className="workspace-dot" /> YOUR WORKSPACE <ChevronRight size={12} /> COMMAND CENTER
             </div>
             <div className="office-title">
-              <h1>{live ? "Incident command office." : "Dock B. Command office."}</h1>
-              <span className="office-badge">
-                <i />
-                {snapshot.agents.length} agents
-              </span>
+              <h1>Clarity when it matters.</h1>
+              <button className="guide-button" onClick={() => setModal("help")}><CircleHelp size={15} /> How it works</button>
             </div>
-            <p>Your Commander coordinates. Your team takes action.</p>
+            <p>One Slack incident. Five AI teammates. A clear next step for everyone.</p>
           </div>
           <div className="incident-strip">
             <span className="incident-indicator">
               <Radio size={17} />
             </span>
-            <div>
+            <div className="incident-details">
               <div className="incident-meta">
+                <span className="incident-state">{snapshot.status === "handed_over" ? "Handoff accepted" : snapshot.status === "closed" ? "Closed" : snapshot.status === "reported" ? "Report received" : "Incident in progress"}</span>
                 <span>{snapshot.incidentId}</span>
-                <span className="incident-dot">·</span>
-                <span>{snapshot.status.replaceAll("_", " ")}</span>
               </div>
               {live && incidents.length > 1 ? (
                 <select
@@ -711,13 +747,63 @@ export default function App() {
               </button>
             )}
           </div>
+          <section className="overview-metrics" aria-label="Incident at a glance">
+            <button className="overview-metric" onClick={() => showPanel("tasks")}>
+              <span className="metric-icon"><ListTodo size={18} /></span>
+              <span><strong>{openTasks.length}</strong><span>Open tasks</span></span>
+              <ArrowRight size={14} />
+            </button>
+            <button className={`overview-metric ${blockers.length ? "attention" : ""}`} onClick={() => showPanel("tasks")}>
+              <span className="metric-icon"><ShieldCheck size={18} /></span>
+              <span><strong>{blockers.length}</strong><span>Need review</span></span>
+              <ArrowRight size={14} />
+            </button>
+            <button className="overview-metric" onClick={() => showPanel("activity")}>
+              <span className="metric-icon"><Users size={18} /></span>
+              <span><strong>{working}<small> / {snapshot.agents.length}</small></strong><span>Agents working</span></span>
+              <ArrowRight size={14} />
+            </button>
+          </section>
           {snapshot.slackThreadUrl && <button className="join-incident-banner" onClick={() => setModal("share")}><Users size={16} /><strong>Join this incident</strong><span>Share thread & QR · Add details together</span><ArrowRight size={16} /></button>}
           {live && <ResponseBoard snapshot={snapshot} />}
           <div className="scene-area">
             <div className="scene-caption">
-              <span className="tiny-square" /> WAREHOUSE OPERATIONS
-              <span>Drag to explore · Select an agent</span>
+              <span className="scene-caption-icon"><Layers3 size={15} /></span>
+              <div><strong>Your team, in sync</strong><span>Select a desk · drag to explore the office</span></div>
             </div>
+            <span className="scene-mode">
+              <i />
+              <span>{live ? "Connected office" : "Interactive preview"}</span>
+              <b>{working} active</b>
+            </span>
+            {handoff && (
+              <div
+                key={`${handoff.from}-${handoff.to}-${handoff.taskId}`}
+                className="flow-receipt"
+                role="status"
+                aria-live="polite"
+                style={
+                  {
+                    "--flow-from": departments[handoff.from].color,
+                    "--flow-to": departments[handoff.to].color,
+                  } as React.CSSProperties
+                }
+              >
+                <span className="flow-route-symbol" aria-hidden="true">
+                  <i />
+                  <ArrowRight size={12} />
+                  <i />
+                </span>
+                <span>
+                  <small>{live ? "LATEST LIVE ROUTE" : "SIMULATED ROUTE"}</small>
+                  <strong>
+                    <span>{departments[handoff.from].name}</span>
+                    <ArrowRight size={10} />
+                    <span>{departments[handoff.to].name}</span>
+                  </strong>
+                </span>
+              </div>
+            )}
             <Suspense
               fallback={
                 <div className="scene-loading">
@@ -737,6 +823,10 @@ export default function App() {
               />
             </Suspense>
             <div className="scene-legend">
+              <span className="flow-legend">
+                <i className="flow-dot" />
+                Active flow
+              </span>
               <span>
                 <i className="working-dot" />
                 Working
@@ -780,7 +870,7 @@ export default function App() {
               <button
                 aria-label="Reset office view"
                 onClick={() => {
-                  setZoom(1);
+                  setZoom(1.6);
                   setReset((v) => v + 1);
                   setSelected("commander");
                 }}
@@ -790,28 +880,22 @@ export default function App() {
             </div>
           </div>
           <div className="office-bottom">
-            <div className="team-pulse">
+            <div className={`team-pulse ${blockers.length ? "attention" : ""}`}>
               <span className="pulse-icon">
                 <AudioLines size={19} />
               </span>
               <div>
                 <strong>
-                  {blockers.length
-                    ? "A little clarity goes a long way."
-                    : snapshot.status === "handed_over"
-                      ? "Coordinated. Documented. Handed over."
-                      : "Every action, moving together."}
+                  {nextAction.title}
                 </strong>
                 <p>
-                  {blockers.length
-                    ? `${blockers.length} task needs human review. Your team has the evidence ready.`
-                    : `${openTasks.length} open tasks · ${working} ${working === 1 ? "agent" : "agents"} working · One shared incident`}
+                  {nextAction.description}
                 </p>
               </div>
               <button
-                aria-label="Show team activity"
-                onClick={() => setTab("activity")}
+                onClick={() => { setTab(nextAction.panel); if (nextAction.panel === "chat") setSelected("commander"); setMobileScene(false); }}
               >
+                {nextAction.action}
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -819,7 +903,7 @@ export default function App() {
               <div className="demo-control">
                 <div className="demo-heading">
                   <span>
-                    <Sparkles size={13} /> DEMO SCENARIO
+                    <Sparkles size={15} /> TRY THE RESPONSE WORKFLOW
                   </span>
                   <button
                     className="demo-play"
@@ -833,6 +917,7 @@ export default function App() {
                     {playing ? "Pause" : "Play demo"}
                   </button>
                 </div>
+                <p className="demo-intro">Follow a forklift incident from first report to handoff. Pick a step or press play.</p>
                 <div className="stage-track">
                   {stages.map((label, i) => (
                     <button
@@ -878,12 +963,13 @@ export default function App() {
             )}
           </div>
         </main>
-        <aside className="inspector">
+        <aside className="inspector" id="response-panel" tabIndex={-1} aria-label="Response team panel">
           <div className="inspector-heading">
-            <span>YOUR RESPONSE TEAM</span>
+            <span><span className="workspace-dot" /> YOUR RESPONSE TEAM</span>
             <button
               className="mobile-toggle"
               onClick={() => setMobileScene((v) => !v)}
+              aria-expanded={mobileScene}
             >
               <Layers3 size={15} />
               {mobileScene ? "Hide office" : "View office"}
@@ -892,7 +978,19 @@ export default function App() {
               0{agentIds.indexOf(selected) + 1} / 05
             </span>
           </div>
-          <div className="agent-profile">
+          <button className="mobile-incident-summary" onClick={() => setMobileScene(true)}>
+            <span><span>{live ? "CURRENT INCIDENT" : "INTERACTIVE DEMO"} · {snapshot.incidentId}</span><strong>{snapshot.title}</strong></span>
+            <ArrowRight size={16} />
+          </button>
+          <div
+            className="agent-profile"
+            style={
+              {
+                "--department": department.color,
+                "--pale": department.pale,
+              } as React.CSSProperties
+            }
+          >
             <div
               className={`agent-portrait ${selected}`}
               style={
@@ -906,10 +1004,7 @@ export default function App() {
               <i className={agent.status} />
             </div>
             <div>
-              <h2>
-                {department.name}
-                <ChevronDown size={14} />
-              </h2>
+              <h2>{department.name}</h2>
               <p>{department.role}</p>
             </div>
             <button
@@ -920,6 +1015,7 @@ export default function App() {
               <Command size={17} />
             </button>
           </div>
+          <p className="agent-explanation">{agentExplanations[selected]}</p>
           <div
             className="team-switcher"
             role="group"
@@ -942,18 +1038,32 @@ export default function App() {
               >
                 <DeptIcon id={id} size={15} />
                 <span>
-                  {id === "communications" ? "Comms" : departments[id].name}
+                  {id === "communications" ? "Comms" : id === "commander" ? "Lead" : departments[id].name}
                 </span>
               </button>
             ))}
           </div>
           <div className="panel-tabs" role="tablist" aria-label="Agent panels">
-            {(["chat", "tasks", "thread", "activity"] as const).map((t) => (
+            {panelIds.map((t, index) => (
               <button
                 key={t}
                 role="tab"
+                id={`tab-${t}`}
+                aria-controls={`panel-${t}`}
                 aria-selected={tab === t}
+                tabIndex={tab === t ? 0 : -1}
                 onClick={() => setTab(t)}
+                onKeyDown={(event) => {
+                  let next = index;
+                  if (event.key === "ArrowRight") next = (index + 1) % panelIds.length;
+                  else if (event.key === "ArrowLeft") next = (index + panelIds.length - 1) % panelIds.length;
+                  else if (event.key === "Home") next = 0;
+                  else if (event.key === "End") next = panelIds.length - 1;
+                  else return;
+                  event.preventDefault();
+                  setTab(panelIds[next]);
+                  document.getElementById(`tab-${panelIds[next]}`)?.focus();
+                }}
               >
                 {t === "chat" ? (
                   <MessageSquare size={14} />
@@ -961,17 +1071,13 @@ export default function App() {
                   <ListTodo size={14} />
                 ) : t === "thread" ? (
                   <Hash size={14} />
+                ) : t === "office" ? (
+                  <BookOpen size={14} />
                 ) : (
                   <AudioLines size={14} />
                 )}
                 <span>
-                  {t === "chat"
-                    ? "Chat"
-                    : t === "tasks"
-                      ? "Tasks"
-                      : t === "thread"
-                        ? "Slack"
-                        : "Activity"}
+                  {panelNames[t]}
                 </span>
                 {t === "tasks" && <b>{snapshot.tasks.length}</b>}
               </button>
@@ -985,7 +1091,7 @@ export default function App() {
               </button>
             </div>
           )}
-          <div className="panel-content" role="tabpanel">
+          <div className="panel-content" role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} tabIndex={0}>
             {tab === "office" ? <OfficeDirectory connected={live} /> : tab === "chat" ? (
               <>
                 <div className="conversation-date">
@@ -997,7 +1103,7 @@ export default function App() {
                   <div className="message-byline">
                     <span
                       className="mini-agent"
-                      style={{ color: department.color }}
+                      style={{ "--department": department.color } as React.CSSProperties}
                     >
                       <DeptIcon id={selected} size={13} />
                     </span>
@@ -1111,7 +1217,7 @@ export default function App() {
                       <div className="task-top">
                         <span
                           className="task-department"
-                          style={{ color: departments[t.agentId].color }}
+                          style={{ "--department": departments[t.agentId].color } as React.CSSProperties}
                         >
                           <DeptIcon id={t.agentId} size={13} />
                           {departments[t.agentId].name}
@@ -1235,7 +1341,7 @@ export default function App() {
               </form>
               <p className="composer-note">
                 <ShieldCheck size={11} />
-                Agents act. Every update improves the response.
+                {live ? "Your questions and agent replies are shared in Slack." : "Safe to explore. This demo uses scripted responses."}
               </p>
             </div>
           )}
@@ -1269,6 +1375,7 @@ export default function App() {
             <button
               className="modal-close icon-button"
               aria-label="Close dialog"
+              autoFocus={modal !== "connect" || paired}
               onClick={() => setModal(null)}
             >
               <X size={19} />
@@ -1341,32 +1448,19 @@ export default function App() {
               </>
             ) : (
               <>
-                <p>
-                  A living office for incident coordination. The Commander
-                  delegates to four specialists; every desk shows the same state
-                  as the shared incident.
-                </p>
-                <ul>
-                  <li>
-                    Select an agent to inspect its work and ask a question.
-                  </li>
-                  <li>
-                    Use the demo stages to show the full coordination story.
-                  </li>
-                  <li>
-                    Connect the backend for real events and agent responses.
-                  </li>
-                  <li>Share the incident QR and add observations in its Slack thread.</li>
-                </ul>
+                <p>SafeSlackForce turns an incident reported in Slack into a shared plan. AI agents organize the information; people carry out and confirm the real-world work.</p>
+                <ol className="how-it-works">
+                  <li><span>01</span><div><strong>Report it in Slack</strong><p>Mention the bot in your connected channel. The incident and its updates appear here.</p></div></li>
+                  <li><span>02</span><div><strong>Let the team connect the dots</strong><p>The Commander brings together procedures, evidence, people, and a record of every action.</p></div></li>
+                  <li><span>03</span><div><strong>Review, respond, and hand over</strong><p>Check tasks, clarify details in the shared Slack thread, and download the handoff report.</p></div></li>
+                </ol>
+                <div className="guide-tip"><Sparkles size={17} /><p><strong>New here? Start with the demo.</strong> Pick a workflow step, select an agent, or ask “What happens next?” to see how it works.</p></div>
                 <p className="field-hint">
-                  Preview mode is scripted. A connected workspace runs live agents with the configured data and services.
-                  Original scene geometry inspired by the Agents Office
-                  reference.
+                  The demo is simulated. A connected workspace uses your configured services. Handoff acceptance does not mean all physical work is complete.
                 </p>
                 <button
-                  autoFocus
                   className="primary-button"
-                  onClick={() => setModal(null)}
+                  onClick={() => { setModal(null); setMobileScene(true); }}
                 >
                   Explore the office <ArrowRight size={15} />
                 </button>

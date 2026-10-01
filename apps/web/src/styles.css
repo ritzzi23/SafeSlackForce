@@ -1970,69 +1970,212 @@ h1 {
   color: #617851;
 }
 .pod-label {
-  width: 133px !important;
-  background: #35483eed;
-  color: #eef1e4;
-  border: 1px solid #ffffff35;
-  box-shadow: 0 5px 13px #253d2922;
-  padding: 8px 9px;
-  border-radius: 5px;
-  backdrop-filter: blur(10px);
+  position: relative;
+  display: block;
+  width: 154px !important;
+  overflow: hidden;
+  padding: 11px 11px 9px;
+  border: 1px solid #ffffff38;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #223a34f2, #172b27ed);
+  color: #f5f8f1;
+  text-align: left;
+  box-shadow: 0 12px 30px #10251f30, inset 0 1px #ffffff14;
+  backdrop-filter: blur(16px) saturate(1.15);
+  cursor: pointer;
+  transform: translateY(0) scale(1);
+  transform-origin: 50% 100%;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+.pod-label::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--department);
+  box-shadow: 0 0 14px var(--department);
+}
+.pod-label::after {
+  content: "";
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  right: -28px;
+  top: -35px;
+  border-radius: 50%;
+  background: var(--department);
+  opacity: 0.1;
+  filter: blur(13px);
+}
+.pod-label > * {
+  position: relative;
+  z-index: 1;
+}
+.pod-label:hover,
+.pod-label:focus-visible {
+  transform: translateY(-4px) scale(1.025);
+  border-color: #ffffff6b;
+  background: linear-gradient(145deg, #2a473ff7, #1c342ef5);
+  box-shadow: 0 16px 38px #10251f42, inset 0 1px #ffffff1c;
+}
+.pod-label:active {
+  transform: translateY(-1px) scale(0.99);
 }
 .pod-label.selected {
-  background: #526849ed;
-  border-color: #b8c7a2;
+  border-color: var(--department);
+  background: linear-gradient(145deg, #355349f7, #233c35f7);
   box-shadow:
-    0 0 0 2px #d5e5bf35,
-    0 5px 20px #263e2530;
+    0 0 0 2px #ffffff1f,
+    0 0 0 4px color-mix(in srgb, var(--department) 35%, transparent),
+    0 16px 36px #10251f47;
 }
 .pod-label.central {
-  width: 157px !important;
-  background: #475b3eef;
-  border-color: #adc095;
+  width: 172px !important;
+  background: linear-gradient(145deg, #304b42f5, #1f352ff2);
+  border-color: #ffffff4a;
+}
+.pod-label.central.selected {
+  border-color: var(--department);
 }
 .pod-eyebrow {
-  font-size: 8px !important;
-  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b8c8bf;
+  font-size: 7px !important;
+  font-weight: 750;
+  letter-spacing: 1px;
 }
 .pod-eyebrow i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
   background: var(--department);
-  box-shadow: 0 0 0 2px #ffffff15;
+  box-shadow: 0 0 0 3px #ffffff10, 0 0 9px var(--department);
 }
-.pod-label .pod-status {
-  border-top: 1px solid #ffffff1a;
-  margin-top: 7px;
-  padding-top: 6px;
-  color: #c9d5bd;
-  font-size: 7px !important;
+.pod-eyebrow small {
+  margin-left: auto;
+  color: #91a79b;
+  font-size: 5.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
 }
-.pod-label .pod-status em {
-  color: #b0c09e;
-  font-size: 6px !important;
+.pod-label.status-working .pod-eyebrow i {
+  animation: pod-status-pulse 1.8s ease-in-out infinite;
 }
-.pod-label .pod-status.waiting > b {
-  background: #e8c477;
-}
-.pod-label .pod-status.blocked > b {
-  background: #e9aa8c;
+.pod-title,
+.central .pod-title {
+  display: block;
+  overflow: hidden;
+  margin: 7px 0 8px;
+  color: #f7faf5;
+  font-family: "Manrope Variable", sans-serif;
+  font-size: 14px !important;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.35px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .central .pod-title {
-  font-size: 14px !important;
-  margin: 4px 0 1px;
-  color: #f6f7ec;
+  font-size: 16px !important;
 }
-.floor-label {
-  background: #eff1e2b0;
-  color: #657359;
-  font-size: 6px;
-  padding: 2px 4px;
-  border-radius: 2px;
+.pod-label .pod-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 0;
+  padding-top: 7px;
+  border-top: 1px solid #ffffff1a;
+  color: #c7d4cc;
+  font-size: 7px !important;
+  white-space: nowrap;
 }
-.pod-label:hover {
-  background: #4d6452;
+.pod-label .pod-status > b {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  background: #aab5aa;
+  box-shadow: 0 0 7px currentColor;
+}
+.pod-label .pod-status em {
+  margin-left: auto;
+  color: #91a79b;
+  font-size: 6px !important;
 }
 .pod-label .pod-status.working > b {
-  background: #b7d69b;
+  background: #9bd584;
+}
+.pod-label .pod-status.waiting > b {
+  background: #e7c16f;
+}
+.pod-label .pod-status.blocked > b,
+.pod-label .pod-status.failed > b {
+  background: #ee927b;
+}
+.pod-label .pod-status.done > b {
+  background: #86beb2;
+}
+.pod-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: #9db1a6;
+  font-size: 6px;
+  font-weight: 650;
+  letter-spacing: 0.25px;
+}
+.pod-cta > span {
+  color: #d8e6de;
+  font-size: 9px;
+  transition: transform 180ms ease;
+}
+.pod-label:hover .pod-cta > span,
+.pod-label:focus-visible .pod-cta > span {
+  transform: translate(2px, -2px);
+}
+.pod-label.selected .pod-cta {
+  color: #d8e6de;
+}
+.floor-label {
+  background: #eff4e8c7;
+  color: #506359;
+  font-size: 6px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  padding: 3px 6px;
+  border: 1px solid #ffffff7d;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px #243a3030;
+}
+@keyframes pod-status-pulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.75; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
+@media (max-width: 760px) {
+  .pod-label .pod-eyebrow small,
+  .pod-label .pod-status em,
+  .pod-label .pod-cta {
+    display: none;
+  }
+  .pod-title,
+  .central .pod-title {
+    margin-bottom: 6px;
+    font-size: 12px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pod-label,
+  .pod-cta > span,
+  .pod-label .pod-eyebrow i {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 .panel-tabs {
   gap: 4px;
