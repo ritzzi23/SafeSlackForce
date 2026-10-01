@@ -6,7 +6,7 @@ not a production emergency-response service.
 
 ## Run without spending credits
 
-1. Install Node 18.20 or newer and run `npm ci` from the repository root.
+1. Install Node 22 or newer and run `npm ci` from the repository root.
 2. Copy `.env.example` to an untracked `.env`. Set `DASHBOARD_TOKEN` to a random
    value of at least 24 characters. Keep `SAFESLACKFORCE_MODE=fixture` initially.
 3. Run `npm run dev:api`. The API listens on `http://localhost:4100`.
@@ -79,6 +79,13 @@ Use a dedicated workspace/channel and synthetic participants only.
   `files:read` for optional photo ingestion. Remove the latter if you will not use images.
 - Enable Interactivity for the acknowledgement buttons and confirmation modal.
 - Install/reinstall after changing scopes, and invite the bot to the demo channel.
+- Run `npm run doctor -- --live` to check the installed token's permissions and
+  channel membership. Bot authentication does not verify installed event subscriptions;
+  check `app_mention` and `message.channels` in the app's Event Subscriptions settings.
+- Run only one incident runtime for this Slack app. Slack can deliver each event to
+  any connected Socket Mode client, so independent processes with separate databases
+  can miss each other's thread updates. Stop old laptop/deployment instances before
+  a rehearsal. See [Slack's Socket Mode documentation](https://api.slack.com/apis/connections/socket).
 - Set actual workspace, channel, supervisor, lead and backup Slack IDs in `.env`.
 - Set `OPENROUTER_API_KEY` and a tool-capable `SAFESLACKFORCE_MODEL`; then change mode
   to `live`. Startup rejects missing credentials and placeholder Slack IDs.

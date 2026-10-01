@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { AgentId, IncidentSnapshot } from '@safeslackforce/contracts';
 import { agentIds } from '@safeslackforce/contracts';
-import { api } from './api';
+import { api, ApiError } from './api';
 import { departments } from './data';
 import { PROJECT_NAME } from './branding';
 
@@ -14,9 +14,11 @@ const idle: IncidentSnapshot = {
   tasks: [], activity: [], reports: [], responseActions: [],
 };
 
-export default function WaitingOffice({ onIncident, reduced }: {
+export default function WaitingOffice({ onIncident, onAuthRequired, onConnect, reduced }: {
   onIncident: (snapshot: IncidentSnapshot, incidents: { incidentId: string; title: string; status: string }[]) => void;
   reduced: boolean;
+  onAuthRequired: () => void;
+  onConnect: () => void;
 }) {
   const [selected, setSelected] = useState<AgentId>('commander');
   const [connection, setConnection] = useState('Checking workspace connection…');
@@ -34,14 +36,16 @@ export default function WaitingOffice({ onIncident, reduced }: {
         }
         const health = await api.health();
         if (!stopped) setConnection(health.slack === 'connected' ? 'Slack connected · Watching for new incidents' : 'Waiting for Slack to reconnect');
-      } catch {
+      } catch (error) {
+        if (stopped) return;
+        if (error instanceof ApiError && error.status === 401) { onAuthRequired(); return; }
         if (!stopped) setConnection('Workspace connection unavailable · Retrying');
       }
       if (!stopped) timer = setTimeout(check, 2500);
     };
     void check();
     return () => { stopped = true; clearTimeout(timer); };
-  }, [onIncident]);
+  }, [onIncident, onAuthRequired]);
   return <div className="waiting-workspace">
     <header className="waiting-header"><a href="/">{PROJECT_NAME}</a><span>LIVE WORKSPACE</span></header>
     <main className="waiting-layout">
@@ -58,6 +62,7 @@ export default function WaitingOffice({ onIncident, reduced }: {
         <div className="waiting-counts"><span><strong>0</strong>Incidents</span><span><strong>0</strong>Tasks</span><span><strong>0</strong>Reports</span></div>
         <div className="waiting-agent"><span>{departments[selected].code}</span><div><h3>{departments[selected].name}</h3><p>{departments[selected].role}</p></div><small>Ready</small></div>
         <p className="waiting-hint">Select any agent to explore the office while you wait.</p>
+        <button className="text-button" onClick={onConnect}>Workspace settings</button>
       </aside>
     </main>
   </div>;

@@ -12,19 +12,25 @@ else {
   console.log(`Mode: ${c.mode}. Model allowance: $${c.modelBudget}; ${c.callLimit} attempts maximum.`);
   console.log(`Exa: ${c.exaEnabled ? 'enabled; verify its provider balance separately' : 'disabled'}. Vision: ${c.visionEnabled ? 'enabled' : 'disabled'}.`);
   if (process.argv.includes('--live')) {
+    let grantedScopes: string[] = [];
     const slack = async (method: string, args: object = {}) => {
       const res = await fetch(`https://slack.com/api/${method}`, { method: 'POST', signal: AbortSignal.timeout(15000),
         headers: { Authorization: `Bearer ${c.botToken}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(args as Record<string, string>) });
       const value = await res.json() as any;
       if (!res.ok || !value.ok) throw new Error(`Slack ${method}: ${value.error || res.status}`);
+      if (method === 'auth.test') grantedScopes = (res.headers.get('x-oauth-scopes') || '').split(',').map(scope => scope.trim()).filter(Boolean);
       return value;
     };
     try {
       const auth = await slack('auth.test'); if (auth.team_id !== c.team) throw new Error('Bot token belongs to a different workspace');
+      const scopes = ['app_mentions:read', 'channels:history', 'channels:read', 'chat:write', ...(c.filesEnabled ? ['files:read'] : [])];
+      const missingScopes = scopes.filter(scope => !grantedScopes.includes(scope));
+      if (missingScopes.length) throw new Error(`Installed bot permissions could not be verified: ${missingScopes.join(', ')}. Check OAuth scopes and reinstall the Slack app if needed.`);
       const info = await slack('conversations.info', { channel: c.channel });
       if (!info.channel?.is_member) throw new Error('Invite the bot to the configured public demo channel');
       if (info.channel?.is_private) throw new Error('This manifest subscribes to public channels only');
-      console.log('Slack bot identity, workspace and public channel membership verified. Socket token and interactive actions still require a live rehearsal.');
+      console.log('Slack bot identity, workspace, granted permissions and public channel membership verified.');
+      console.log('Installed event subscriptions are not verified by bot authentication. Check app_mention and message.channels, enable Interactivity, and run only one incident runtime per Slack app. Socket delivery and human actions still require a live rehearsal.');
       const response = await fetch('https://openrouter.ai/api/v1/models', { signal: AbortSignal.timeout(15000) });
       const models = await response.json() as { data?: { id: string; supported_parameters?: string[]; pricing?: { prompt?: string; completion?: string } }[] };
       const model = models.data?.find(m => m.id === c.model);

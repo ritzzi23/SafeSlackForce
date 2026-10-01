@@ -4,6 +4,13 @@ import { demoSnapshot, demoAnswer } from "../data";
 import { api, ApiError, linkedIncidentId, safeUrl } from "../api";
 afterEach(() => vi.unstubAllGlobals());
 describe("frontend contract", () => {
+  it("requires one of each agent and rejects missing or duplicate desks", () => {
+    const snapshot = demoSnapshot(1);
+    for (const agents of [[], snapshot.agents.slice(1), [...snapshot.agents.slice(0, 4), snapshot.agents[0]]]) {
+      expect(snapshotSchema.safeParse({ ...snapshot, agents }).success).toBe(false);
+    }
+    expect(snapshotSchema.safeParse({ ...snapshot, agents: [...snapshot.agents].reverse() }).success).toBe(true);
+  });
   it("opens the incident named by a Slack link instead of the first incident", () => {
     const list = [{ incidentId: "INC-OLD" }, { incidentId: "INC-NEW" }];
     expect(linkedIncidentId(list, "?incidentId=INC-NEW")).toBe("INC-NEW");

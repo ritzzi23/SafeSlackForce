@@ -17,16 +17,21 @@ export class SlackIntake {
     const eventKey = eventId ? `slack-event-${team}-${eventId}` : undefined;
     if (eventKey && this.domain.store.get(eventKey)) return;
     const root = message.thread_ts || message.ts;
+    // A deletion's previous_message still carries the old edit timestamp.
+    // Use the deletion event's timestamp so it supersedes that edit.
+    const revision = event.subtype === 'message_deleted'
+      ? event.event_ts || event.ts || message.ts
+      : message.edited?.ts || event.event_ts || message.ts;
     let incident = this.domain.find(team, event.channel, root);
     if (!incident && (event.type !== 'app_mention' || event.subtype)) return;
     let changed = false;
     if (!incident) {
-      incident = this.domain.create({ team, channel: event.channel, ts: root, user: message.user, text: message.text || 'Attachment report' });
+      incident = this.domain.create({ team, channel: event.channel, rootTs: root, ts: message.ts, revision, user: message.user, text: message.text || 'Attachment report' });
       changed = true;
     } else {
       changed = this.domain.addMessage(incident.snapshot.incidentId, {
         ts: message.ts, text: message.text || '', user: message.user,
-        revision: message.edited?.ts || event.event_ts || message.ts,
+        revision,
         deleted: event.subtype === 'message_deleted',
       });
     }

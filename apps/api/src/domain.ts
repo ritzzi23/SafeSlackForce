@@ -18,6 +18,7 @@ export type Incident = {
   criticalTaskIds: string[]; acceptedBy?: string; attachments?: Attachment[]; locationSourceIds?: string[]; demoArchived?: boolean;
   evidenceReview?: { sourceIds: string[]; noObservationsReason: string | null; noLocationReason?: string | null };
   coordinationFailures?: AgentId[]; coordinationQuestions?: boolean; coordinationStateKey?: string;
+  humanRevision?: number; specialistRunRevisions?: Partial<Record<'procedure' | 'evidence', number>>;
 };
 export const procedure = {
   id: 'warehouse-coordination-v1', version: 1, label: 'Synthetic warehouse coordination procedure',
@@ -48,15 +49,16 @@ export class Incidents {
     for (const file of incident.attachments ?? []) if (file.removed) refs.delete(file.source.id);
     return ids.map(id => { const source = refs.get(id) ?? this.office?.source(id); if (!source) throw new DomainError(400, `Unknown or removed source: ${id}`); return source; });
   }
-  create(input: { team: string; channel: string; ts: string; user: string; text: string }) {
-    const existing = this.find(input.team, input.channel, input.ts); if (existing) return existing;
+  create(input: { team: string; channel: string; ts: string; rootTs?: string; revision?: string; user: string; text: string }) {
+    const rootTs = input.rootTs ?? input.ts;
+    const existing = this.find(input.team, input.channel, rootTs); if (existing) return existing;
     const id = `INC-${randomUUID().slice(0, 8).toUpperCase()}`;
     const url = this.slackUrl(input.team, input.channel, input.ts);
-    const message: Message = { id: input.ts, text: input.text, author: input.user, timestamp: new Date().toISOString(), source: { id: input.ts, label: `${input.user}: initial report`, kind: 'slack_message', url } };
+    const message: Message = { id: input.ts, revision: input.revision ?? input.ts, text: input.text, author: input.user, timestamp: new Date().toISOString(), source: { id: input.ts, label: `${input.user}: initial report`, kind: 'slack_message', url } };
     const incident: Incident = {
-      team: input.team, channel: input.channel, rootTs: input.ts, messages: [message], facts: [], notifications: [], criticalTaskIds: [],
+      team: input.team, channel: input.channel, rootTs, messages: [message], facts: [], notifications: [], criticalTaskIds: [],
       snapshot: { schemaVersion: 1, incidentId: id, version: 0, cursor: 0, mode: this.config.mode,
-        title: input.text.slice(0, 100), location: 'Not yet confirmed', status: 'reported', slackThreadUrl: url,
+        title: input.text.slice(0, 100), location: 'Not yet confirmed', status: 'reported', slackThreadUrl: this.slackUrl(input.team, input.channel, rootTs),
         slackConnection: this.connection, agents: agentIds.map(agent => ({ id: agent, name: agent[0].toUpperCase() + agent.slice(1), status: 'idle', currentTaskId: null, summary: 'No work assigned', waitingOn: null, sources: [] })),
         tasks: [], activity: [], reports: [],
       },
@@ -66,17 +68,21 @@ export class Incidents {
   slackUrl(team: string, channel: string, ts: string) { return this.config.mode === 'fixture' ? '' : `https://app.slack.com/archives/${encodeURIComponent(channel)}/p${ts.replace('.', '')}`; }
   commit(i: Incident, text: string, sources: SourceRef[] = [], handoff?: StreamUpdate['handoff']) {
     const commander = i.snapshot.agents.find(a => a.id === 'commander')!;
-    const coordinationStateKey = JSON.stringify([i.snapshot.location, i.snapshot.tasks.map(t => [t.id, t.status, t.version]), i.notifications.map(n => [n.state, n.acknowledgedBy]), i.snapshot.responseActions, i.coordinationFailures, i.coordinationQuestions]);
-    if (i.coordinationFailures && commander.status !== 'working' && coordinationStateKey !== i.coordinationStateKey) {
+    const terminal = ['handed_over', 'closed'].includes(i.snapshot.status);
+    const coordinationStateKey = JSON.stringify([i.snapshot.status, i.snapshot.location, i.snapshot.tasks.map(t => [t.id, t.status, t.version]), i.notifications.map(n => [n.state, n.acknowledgedBy]), i.snapshot.responseActions, i.coordinationFailures, i.coordinationQuestions]);
+    if (terminal || (i.coordinationFailures && commander.status !== 'working' && coordinationStateKey !== i.coordinationStateKey)) {
       i.coordinationStateKey = coordinationStateKey;
+      const failures = i.coordinationFailures ?? [];
       const open = i.snapshot.tasks.filter(t => !['completed', 'cancelled'].includes(t.status));
       const unacknowledged = open.filter(t => ['proposed', 'assigned'].includes(t.status));
-      commander.summary = `Reported location: ${i.snapshot.location}. ${open.length} tasks remain open; ${unacknowledged.length} still await recorded ownership acceptance. ${i.notifications.filter(n => n.state === 'sent').length} notifications have delivery receipts; delivery is not acknowledgement.${i.coordinationFailures.length ? ` Needs attention: ${i.coordinationFailures.join(', ')} failed.` : ''} ${open.length ? 'Digital coordination has run; human confirmations remain outstanding.' : 'Review the incident record for remaining decisions.'}`;
-      if (this.config.autonomousResponse) {
+      commander.summary = `Reported location: ${i.snapshot.location}. ${open.length} tasks remain open; ${unacknowledged.length} still await recorded ownership acceptance. ${i.notifications.filter(n => n.state === 'sent').length} notifications have delivery receipts; delivery is not acknowledgement.${failures.length ? ` Needs attention: ${failures.join(', ')} failed.` : ''} ${open.length ? 'Digital coordination has run; human confirmations remain outstanding.' : 'Review the incident record for remaining decisions.'}`;
+      if (terminal) {
+        commander.summary = `${i.snapshot.status === 'closed' ? 'Incident closed with an attributed human confirmation.' : 'Handoff accepted by the designated supervisor.'} ${open.length} tasks remain open. Review recorded confirmations and sources; this does not independently verify physical outcomes.`;
+      } else if (this.config.autonomousResponse) {
         const actions = i.snapshot.responseActions ?? [];
-        commander.summary = `Autonomous coordination active at ${i.snapshot.location}. ${actions.filter(a => a.status === 'completed').length} digital actions completed; ${actions.filter(a => a.status === 'scheduled').length} follow-ups scheduled. ${open.length} scene tasks remain open. Database lookups, notifications, scheduling and reports continue without ownership approval.${actions.some(a => a.status === 'simulated') ? ' Emergency calling is a labelled simulation; no real call was placed.' : ''}${actions.some(a => ['blocked', 'uncertain'].includes(a.status)) ? ' Check the action log for an unavailable or uncertain delivery.' : ''}${i.coordinationFailures.length ? ` Agent attention needed: ${i.coordinationFailures.join(', ')}.` : ''}`;
+        commander.summary = `Autonomous coordination active at ${i.snapshot.location}. ${actions.filter(a => a.status === 'completed').length} digital actions completed; ${actions.filter(a => a.status === 'scheduled').length} follow-ups scheduled. ${open.length} scene tasks remain open. Database lookups, notifications, scheduling and reports continue without ownership approval.${actions.some(a => a.status === 'simulated') ? ' Emergency calling is a labelled simulation; no real call was placed.' : ''}${actions.some(a => ['blocked', 'uncertain'].includes(a.status)) ? ' Check the action log for an unavailable or uncertain delivery.' : ''}${failures.length ? ` Agent attention needed: ${failures.join(', ')}.` : ''}`;
       }
-      commander.status = i.coordinationFailures.length ? 'failed' : open.length || i.coordinationQuestions ? 'waiting' : 'done';
+      commander.status = terminal ? 'done' : failures.length ? 'failed' : open.length || i.coordinationQuestions ? 'waiting' : 'done';
       commander.waitingOn = commander.status === 'waiting' ? commander.summary : null;
       commander.sources = [...new Map([...commander.sources, ...i.snapshot.tasks.flatMap(t => t.sources), ...sources].map(s => [s.id, s])).values()].slice(-10);
       const communications = i.snapshot.agents.find(a => a.id === 'communications')!;
@@ -129,8 +135,39 @@ export class Incidents {
       if (status === 'working' && (a.status !== 'working' || !a.currentTaskId)) a.currentTaskId = `run-${randomUUID()}`;
       a.status = status; a.summary = summary;
       a.waitingOn = status === 'waiting' || status === 'blocked' ? summary : null; a.sources = sources;
+      if (agent === 'procedure' || agent === 'evidence') {
+        if (status === 'working') (i.specialistRunRevisions ??= {})[agent] = i.humanRevision ?? 0;
+        else {
+          const startedAt = i.specialistRunRevisions?.[agent];
+          if (startedAt !== undefined && startedAt !== (i.humanRevision ?? 0)) this.refreshSpecialist(i, agent);
+        }
+      }
       return sources;
     });
+  }
+  private recordHumanUpdate(i: Incident, sources: SourceRef[]) {
+    i.humanRevision = (i.humanRevision ?? 0) + 1;
+    for (const agent of ['procedure', 'evidence'] as const) this.refreshSpecialist(i, agent, sources);
+  }
+  /** Explicitly refresh one incident's current presentation without changing its evidence. */
+  refreshCurrentSummaries(id: string) {
+    return this.mutate(id, 'Refreshed current agent summaries from recorded state', i => {
+      delete i.coordinationStateKey;
+      for (const agent of ['procedure', 'evidence'] as const) this.refreshSpecialist(i, agent);
+    });
+  }
+  private refreshSpecialist(i: Incident, agent: 'procedure' | 'evidence', sources: SourceRef[] = []) {
+    const a = i.snapshot.agents.find(a => a.id === agent)!;
+    const counts = new Map<string, number>();
+    for (const task of i.snapshot.tasks) counts.set(task.status, (counts.get(task.status) ?? 0) + 1);
+    const tasks = [...counts].map(([status, count]) => `${count} ${status.replaceAll('_', ' ')}`).join('; ') || 'no tasks';
+    const evidence = agent === 'evidence' ? `Evidence record: ${i.facts.filter(f => f.state !== 'disputed').length} current observations; ${i.facts.filter(f => f.state === 'disputed').length} disputed. ` : '';
+    a.summary = `${a.status === 'failed' ? 'Specialist run failed; inspect activity for the error. ' : ''}${evidence}Current task records: ${tasks}. Incident: ${i.snapshot.status.replaceAll('_', ' ')}. Ownership and completion reflect attributed human actions; they do not independently verify physical outcomes.`;
+    if (!['working', 'failed'].includes(a.status)) a.status = counts.has('needs_review') ? 'blocked' : i.snapshot.tasks.some(t => !['completed', 'cancelled'].includes(t.status)) ? 'waiting' : 'done';
+    a.waitingOn = ['waiting', 'blocked'].includes(a.status) ? a.summary : null;
+    const removed = new Set([...i.messages.filter(m => m.deleted).map(m => m.source.id), ...(i.attachments ?? []).filter(f => f.removed).map(f => f.source.id)]);
+    const refs = [...i.messages.filter(m => !m.deleted).map(m => m.source), ...i.snapshot.tasks.flatMap(t => t.sources), ...i.snapshot.activity.flatMap(event => event.sources.filter(s => s.kind === 'human_confirmation')), ...sources];
+    a.sources = [...new Map(refs.filter(s => !removed.has(s.id)).map(s => [s.id, s])).values()].slice(-10);
   }
   delegate(id: string, target: AgentId, task: string) {
     const i = this.get(id); const a = i.snapshot.agents.find(a => a.id === target)!;
@@ -170,6 +207,7 @@ export class Incidents {
       task.sources.push(source);
       if (i.snapshot.status === 'handoff_ready') i.snapshot.status = 'coordinating';
       for (const n of i.notifications) if (n.taskId === taskId && action !== 'review') n.acknowledgedBy = actor;
+      this.recordHumanUpdate(i, [source]);
       return [source];
     });
   }
@@ -179,7 +217,9 @@ export class Incidents {
       const blocker = handoffBlockers(i, this.reportCurrent(i))[0];
       if (blocker) throw new DomainError(409, blocker.message);
       i.snapshot.status = 'handed_over'; i.acceptedBy = actor;
-      return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted handoff` }];
+      const source: SourceRef = { id: randomUUID(), kind: 'human_confirmation', label: `${actor} accepted handoff` };
+      this.recordHumanUpdate(i, [source]);
+      return [source];
     }, expected);
   }
   acceptAssigned(id: string, actor: string, expected: number) {
@@ -193,6 +233,7 @@ export class Incidents {
         for (const n of i.notifications.filter(n => n.taskId === t.id)) n.acknowledgedBy = actor;
       }
       if (i.snapshot.status === 'handoff_ready') i.snapshot.status = 'coordinating';
+      this.recordHumanUpdate(i, [source]);
       return [source];
     }, expected);
   }
@@ -209,7 +250,9 @@ export class Incidents {
       const blocker = closureBlockers(i)[0];
       if (blocker) throw new DomainError(409, blocker.message);
       i.snapshot.status = 'closed';
-      return [{ id: randomUUID(), kind: 'human_confirmation', label: `${actor} closure confirmation: ${note}` }];
+      const source: SourceRef = { id: randomUUID(), kind: 'human_confirmation', label: `${actor} closure confirmation: ${note}` };
+      this.recordHumanUpdate(i, [source]);
+      return [source];
     }, expected);
   }
   report(id: string, summary: string, sourceIds: string[]) {

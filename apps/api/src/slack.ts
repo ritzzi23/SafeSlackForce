@@ -7,6 +7,7 @@ import type { Config } from './config.js';
 import type { KnownBlock } from '@slack/types';
 import { SlackIntake } from './intake.js';
 import { SummaryPublisher } from './summary.js';
+import { publishHandoffReport } from './report-action.js';
 const actionSchema = z.object({ incidentId: z.string(), taskId: z.string(), version: z.number().int() });
 const escapeSlack = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -89,16 +90,18 @@ export class SlackChannel implements Channel {
       // A notification failure must not acknowledge the same modal twice or undo the saved action.
       await this.send(domain.get(confirmation.incidentId), `<@${body.user.id}> confirmed: ${escapeSlack(confirmation.note)}`).catch(reportError);
     });
-    app.action('incident_report', async ({ ack, body }) => {
+    app.action('incident_report', async ({ ack, body, client }) => {
       await ack(); const b = body as any;
       if (b.team?.id !== this.config.team || b.channel?.id !== this.config.channel) return;
-      if (!this.config.supervisors.includes(b.user.id)) return;
       try {
+        if (!this.config.supervisors.includes(b.user.id)) throw new DomainError(403, 'Supervisor required');
         const { incidentId } = z.object({ incidentId: z.string() }).parse(JSON.parse(b.actions[0].value));
-        await agents.enqueue(incidentId, () => agents.run(incidentId, 'records', 'Read all current incident evidence and save a sourced handoff report.'));
-        const i = domain.get(incidentId); if (!i.snapshot.reports.length) throw new Error('No report saved');
-        await this.send(i, `Handoff report prepared. Review the current tasks and evidence in the dashboard. Open tasks remain open.`, [{ action_id: 'incident_handoff', text: 'Accept handoff', value: JSON.stringify({ incidentId, version: i.snapshot.version }) }]);
-      } catch (e) { reportError(e); }
+        if (domain.get(incidentId).channel !== b.channel.id) throw new DomainError(403, 'Wrong incident channel');
+        await publishHandoffReport(domain, agents, this, incidentId);
+      } catch (e) {
+        reportError(e);
+        await client.chat.postEphemeral({ channel: b.channel.id, user: b.user.id, text: e instanceof DomainError ? e.message : 'Report preparation or delivery failed. Inspect Records and the Slack thread before retrying.' });
+      }
     });
     app.action('incident_handoff', async ({ ack, body, client }) => {
       await ack(); const b = body as any;

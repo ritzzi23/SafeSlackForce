@@ -6,7 +6,7 @@ export function ReadinessContent({ data }: { data: IncidentReadiness }) {
   const titles = new Map(data.tasks.map(t => [t.taskId, t.title]));
   return <section className="task-card" aria-label="Action readiness">
     <h3>Scene status & final handoff</h3>
-    <p className="panel-intro">These records track real-world outcomes. Notifications, scheduling, database lookups and reports continue automatically while information is outstanding.</p>
+    <p className="panel-intro">{data.closure.state === 'done' ? 'Handoff and closure are recorded. Review the attributed confirmations and delivery history below.' : data.handoff.state === 'done' ? 'Handoff is recorded. Outstanding tasks remain assigned until human completion and closure are confirmed.' : 'These records track real-world outcomes. Notifications, scheduling, database lookups and reports continue automatically while information is outstanding.'}</p>
     {(['handoff', 'closure'] as const).map(key => {
       const gate = data[key];
       return <details key={key} open={gate.state !== 'done'}>

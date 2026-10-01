@@ -5,6 +5,7 @@ export type ModelMessage = { role: 'system' | 'user' | 'assistant' | 'tool'; con
 export type ToolCall = { id: string; type: 'function'; function: { name: string; arguments: string } };
 export type Completion = { content: string | null; tool_calls?: ToolCall[]; usage?: Record<string, number> };
 export interface Model { complete(messages: ModelMessage[], tools: ToolSpec[]): Promise<Completion> }
+export const MODEL_CONTEXT_LIMIT = 100000;
 export class OpenRouter implements Model {
   constructor(private config: Config, private budget: Budget) {}
   async describeImage(dataUrl: string) {
@@ -30,7 +31,7 @@ export class OpenRouter implements Model {
   }
   async complete(messages: ModelMessage[], tools: ToolSpec[]): Promise<Completion> {
     if (!this.config.apiKey || !this.config.model) throw new Error('OpenRouter key and model are not configured');
-    if (JSON.stringify(messages).length > 70000) throw new Error('Agent context limit reached');
+    if (JSON.stringify(messages).length > MODEL_CONTEXT_LIMIT) throw new Error('Agent context limit reached');
     const reservation = this.budget.reserve('openrouter', this.config.callLimit, this.config.callReserve, this.config.modelBudget);
     try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {

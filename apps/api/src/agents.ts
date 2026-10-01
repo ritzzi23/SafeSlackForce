@@ -7,6 +7,7 @@ import { type Model, type ModelMessage, type ToolSpec } from './model.js';
 import type { Media } from './media.js';
 import { officeCategory } from './office.js';
 import { ResponseOperations } from './response.js';
+import { historyPage } from './history.js';
 
 const roles: Record<AgentId, string> = {
   commander: 'Coordinate reported facts and delegate bounded work to procedure, evidence, communications and records. Execute authorized lookups, procedure matching, task creation and notifications without asking a person to approve each digital step. Ask a human only for missing material facts or genuine ambiguity, not permission to proceed with allowed tools. Records preparation is also triggered automatically after work settles. Do not run a specialist twice for the same purpose. All statements must distinguish reported, unknown and confirmed information.',
@@ -32,7 +33,7 @@ const specs: Record<string, { description: string; properties: object; required:
   read_incident: { description: 'Read current messages, tasks, facts and notifications.', properties: {}, required: [] },
   read_office: { description: 'Search synthetic office contacts, policies, protocols, management, plan catalog or historical demo call logs. All query words must match; use one or two keywords, or an empty query to browse the category. Never actual call evidence or medical/individual enrollment access. Directory contacts do not authorize notification recipients. Cite record source IDs and label results synthetic.', properties: { category: { type: 'string', enum: officeCategory.options }, query: { type: 'string', maxLength: 120 } }, required: ['category', 'query'] },
   read_procedure: { description: 'Read the configured procedure and authorized contact roster.', properties: {}, required: [] },
-  read_history: { description: 'Read a page of the persisted timeline. Follow nextOffset until null before saving a report.', properties: { offset: { type: 'integer', minimum: 0 } }, required: ['offset'] },
+  read_history: { description: 'Read a size-bounded page of the complete persisted timeline. Event arrays follow columns; sourceIndexes reference this page\'s sources array. Every event text and source label is preserved. Follow nextOffset until null before saving a report.', properties: { offset: { type: 'integer', minimum: 0 } }, required: ['offset'] },
   inspect_image: { description: 'Describe an already ingested Slack image. Output is an unverified observation, not a safety determination. Results are cached.', properties: { fileId: fields.text }, required: ['fileId'] },
   update_location: { description: 'Set reported location using a source message.', properties: { location: { ...fields.text, maxLength: 200 }, sources: fields.sources }, required: ['location', 'sources'] },
   record_fact: { description: 'Persist a reported observation with source references. Cannot confirm a fact.', properties: { text: fields.text, sources: fields.sources }, required: ['text', 'sources'] },
@@ -156,6 +157,7 @@ export class Agents {
     let evidenceSaved = false;
     let historyOffset = 0;
     let historyComplete = false;
+    let historyVersion: number | undefined;
     let reportSaved = false;
     const failures = new Set<string>();
     let waitingForHuman = false;
@@ -166,7 +168,10 @@ export class Agents {
     try {
       for (let round = 0; round < this.domain.config.maxRounds; round++) {
         const before = this.domain.get(id).snapshot.version;
-        const response = await this.model.complete(messages, tools);
+        // Offer report persistence only after its read prerequisites are met.
+        // The server-side checks below still reject fabricated or stale calls.
+        const offeredTools = tools.filter(t => t.function.name !== 'save_report' || (readIncident && historyComplete && historyVersion === before));
+        const response = await this.model.complete(messages, offeredTools);
         messages.push({ role: 'assistant', content: response.content, ...(response.tool_calls ? { tool_calls: response.tool_calls } : {}) });
         if (!response.tool_calls?.length) {
           if (!readIncident) {
@@ -216,7 +221,7 @@ export class Agents {
             if (!['read_incident', 'read_procedure'].includes(call.function.name) && expected !== this.domain.get(id).snapshot.version) throw new DomainError(409, 'Incident changed during reasoning; read again');
             if (call.function.name === 'read_procedure') readProcedure = true;
             if (call.function.name === 'apply_procedure' && !readProcedure) throw new DomainError(400, 'Read the configured procedure first');
-            if (call.function.name === 'save_report' && !historyComplete) throw new DomainError(400, 'Read all timeline pages before saving');
+            if (call.function.name === 'save_report' && (!historyComplete || historyVersion !== this.domain.get(id).snapshot.version)) throw new DomainError(400, 'Read all current timeline pages before saving');
             if (call.function.name === 'read_history' && args.offset !== historyOffset) throw new DomainError(400, `Read history at offset ${historyOffset}`);
             result = await this.tool(id, agent, call.function.name, args, depth, cycle);
             if (call.function.name === 'save_report') reportSaved = true;
@@ -227,11 +232,15 @@ export class Agents {
             }
             if (call.function.name === 'read_incident') {
               readIncident = true;
+              if (historyVersion !== undefined && historyVersion !== this.domain.get(id).snapshot.version) {
+                historyOffset = 0; historyComplete = false; historyVersion = undefined;
+              }
               for (const m of this.domain.get(id).messages.filter(m => !m.deleted).slice(-30)) if (!runSources.some(s => s.id === m.source.id)) runSources.push(m.source);
             }
             if (call.function.name === 'read_history') {
               const page = result as { nextOffset: number | null }; historyComplete = page.nextOffset === null;
               historyOffset = page.nextOffset ?? historyOffset;
+              historyVersion = this.domain.get(id).snapshot.version;
             }
             if (call.function.name === 'ask_human') waitingForHuman = true;
             if (Array.isArray(args.sources)) {
@@ -284,7 +293,7 @@ export class Agents {
     if (name === 'read_history') {
       const { offset } = z.object({ offset: z.number().int().nonnegative() }).parse(input);
       const history = this.domain.get(id).snapshot.activity;
-      return { events: history.slice(offset, offset + 25), nextOffset: offset + 25 < history.length ? offset + 25 : null };
+      return historyPage(history, offset);
     }
     if (name === 'read_procedure') return { procedure, roster: { lead: this.domain.config.lead, backup: this.domain.config.backup, supervisors: this.domain.config.supervisors } };
     if (name === 'delegate') {

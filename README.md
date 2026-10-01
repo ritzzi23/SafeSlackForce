@@ -73,6 +73,12 @@ npm run check:integration  # servers must be running; saves one synthetic rehear
 npm run doctor            # reports missing live configuration without secrets
 ```
 
+See the [30 September health fixes and verification](docs/HEALTH-FIXES-2026-09-30.md)
+for the corrected workflow bugs and regression coverage, and the
+[completed live Slack rehearsal](docs/LIVE-REHEARSAL-2026-09-30.md) for acceptance results.
+The [1 October follow-up](docs/FOLLOWUP-2026-10-01.md) covers verified browser
+behavior and bounded, complete-history report generation.
+
 Before live use, configure the Slack tokens, workspace/channel/role IDs,
 `OPENROUTER_API_KEY` and a tool-capable `SAFESLACKFORCE_MODEL`, then set
 `SAFESLACKFORCE_MODE=live` and restart. Leave `DATABASE_PATH` blank to select separate

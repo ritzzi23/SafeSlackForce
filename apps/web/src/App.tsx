@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -127,6 +127,9 @@ export default function App() {
     { incidentId: string; title: string; status: string }[]
   >([]);
   const [sending, setSending] = useState(false);
+  const [loadingIncident, setLoadingIncident] = useState(false);
+  const loadRequest = useRef(0);
+  const activeIncident = useRef<string | null>(null);
   const sendLock = useRef(false);
   const [pending, setPending] = useState<{ id: string; agent: AgentId } | null>(
     null,
@@ -139,6 +142,29 @@ export default function App() {
   const bottom = useRef<HTMLDivElement>(null);
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
+  const acceptSnapshot = useCallback((next: IncidentSnapshot) => {
+    setSnapshot(current => current.incidentId === next.incidentId && current.version > next.version ? current : next);
+  }, []);
+  const activateIncident = useCallback((next: IncidentSnapshot) => {
+    activeIncident.current = next.incidentId;
+    acceptSnapshot(next);
+    setLive(true); setPlaying(false); setChats([]); setInput("");
+    setSelected("commander"); setHandoff(undefined); setModal(null);
+  }, [acceptSnapshot]);
+  const requirePairing = useCallback(() => {
+    loadRequest.current++;
+    activeIncident.current = null;
+    setPaired(false); setConnecting(false); setLoadingIncident(false);
+    setPending(null); setTransport("disconnected"); setModal("connect");
+    setError("Your workspace session expired or the API restarted. Pair again to reconnect.");
+  }, []);
+  const openConnection = useCallback(() => setModal("connect"), []);
+  const receiveFirstIncident = useCallback((next: IncidentSnapshot, list: typeof incidents) => {
+    loadRequest.current++;
+    setIncidents(list); activateIncident(next);
+    const url = new URL(window.location.href); url.searchParams.set("incidentId", next.incidentId);
+    window.history.replaceState(null, "", url);
+  }, [activateIncident]);
   const agent = snapshot.agents.find((a) => a.id === selected)!;
   const department = departments[selected];
   const blockers = snapshot.tasks.filter((t) =>
@@ -150,26 +176,28 @@ export default function App() {
   const working = snapshot.agents.filter((a) => a.status === "working").length;
   useEffect(() => {
     let cancelled = false;
+    const request = ++loadRequest.current;
+    const obsolete = () => cancelled || request !== loadRequest.current;
     void (async () => {
       try {
         const health = await api.health();
-        if (cancelled) return;
+        if (obsolete()) return;
         setBackendMode(health.mode);
         const list = await api.incidents();
-        if (cancelled) return;
+        if (obsolete()) return;
         setPaired(true);
         setIncidents(list);
         if (list.length) {
           const next = await api.snapshot(linkedIncidentId(list, window.location.search)!);
-          if (cancelled) return;
-          setSnapshot(next); setLive(true); setPlaying(false);
-        } else setModal("connect");
+          if (obsolete()) return;
+          activateIncident(next);
+        } else setModal(health.mode === "fixture" ? "connect" : null);
       } catch {
         // Standalone preview still works when the API is offline or pairing is required.
       }
     })();
-    return () => { cancelled = true; };
-  }, []);
+    return () => { cancelled = true; loadRequest.current++; };
+  }, [activateIncident]);
   useEffect(() => {
     const m = matchMedia("(prefers-reduced-motion: reduce)");
     const f = () => setReduced(m.matches);
@@ -208,21 +236,32 @@ export default function App() {
     return () => clearInterval(t);
   }, [playing, live]);
   useEffect(() => {
-    if (!live) return;
+    if (!live || !paired) return;
+    let active = true;
+    const incidentId = snapshot.incidentId;
+    activeIncident.current = incidentId;
     setTransport("reconnecting");
-    return api.stream(
+    const close = api.stream(
       snapshot.incidentId,
       snapshot.cursor,
       (event) => {
+        if (!active || activeIncident.current !== incidentId || event.snapshot.incidentId !== incidentId) return;
         setSnapshot((s) =>
-          event.snapshot.version > s.version ? event.snapshot : s,
+          s.incidentId === incidentId && event.snapshot.version > s.version ? event.snapshot : s,
         );
         if (event.handoff) setHandoff(event.handoff);
       },
-      setTransport,
-      setError,
+      (state) => {
+        if (!active) return;
+        setTransport(state);
+        if (state === "reconnecting") void api.incidents().catch(e => {
+          if (active && activeIncident.current === incidentId && e instanceof ApiError && e.status === 401) requirePairing();
+        });
+      },
+      message => { if (active) setError(message); },
     );
-  }, [live, snapshot.incidentId]);
+    return () => { active = false; close(); };
+  }, [live, paired, snapshot.incidentId, requirePairing]);
   useEffect(() => {
     if (!pending) return;
     let cancelled = false;
@@ -334,7 +373,8 @@ export default function App() {
     setTab("chat");
   }
   async function send(text = input) {
-    if (!text.trim() || pending || sendLock.current) return;
+    if (!text.trim() || pending || sendLock.current || loadingIncident || connecting || (live && !paired)) return;
+    const request = loadRequest.current;
     const question = text.trim();
     const id = crypto.randomUUID();
     const target = selected;
@@ -377,14 +417,19 @@ export default function App() {
         snapshot.version,
         id,
       );
+      if (request !== loadRequest.current) return;
       setPending({ id, agent: target });
     } catch (e) {
+      if (request !== loadRequest.current) return;
+      if (e instanceof ApiError && e.status === 401) requirePairing();
       let message = e instanceof Error ? e.message : "Unable to send question.";
       if (e instanceof ApiError && e.status === 409) {
         message =
           "The incident changed. I refreshed the latest state; please review it and send your question again.";
         try {
-          setSnapshot(await api.snapshot(snapshot.incidentId));
+          const next = await api.snapshot(snapshot.incidentId);
+          if (request !== loadRequest.current || activeIncident.current !== next.incidentId) return;
+          acceptSnapshot(next);
         } catch {
           message += " Refresh failed; reconnect to the backend.";
         }
@@ -402,79 +447,92 @@ export default function App() {
     }
   }
   async function connect() {
+    const request = ++loadRequest.current;
     setConnecting(true);
     setError("");
     try {
       const health = await api.health();
+      if (request !== loadRequest.current) return;
       setBackendMode(health.mode);
       await api.pair(token);
+      if (request !== loadRequest.current) return;
       setPaired(true);
       setToken("");
       const list = await api.incidents();
+      if (request !== loadRequest.current) return;
       setIncidents(list);
       if (!list.length) {
+        setModal(health.mode === "fixture" ? "connect" : null);
         return;
       }
       const next = await api.snapshot(linkedIncidentId(list, window.location.search)!);
-      setPlaying(false);
-      setSnapshot(next);
-      setChats([]);
-      setLive(true);
-      setModal(null);
+      if (request !== loadRequest.current) return;
+      activateIncident(next);
     } catch (e) {
+      if (request !== loadRequest.current) return;
       setError(
         e instanceof Error
           ? e.message
           : "Connection failed. Check that the backend is running on port 4100.",
       );
     } finally {
-      setConnecting(false);
+      if (request === loadRequest.current) setConnecting(false);
     }
   }
   async function refreshIncidents() {
+    const request = ++loadRequest.current;
     setConnecting(true);
     setError("");
     try {
       const health = await api.health();
+      if (request !== loadRequest.current) return;
       setBackendMode(health.mode);
       const list = await api.incidents();
+      if (request !== loadRequest.current) return;
       setPaired(true);
       setIncidents(list);
       if (list.length) {
-        setSnapshot(await api.snapshot(linkedIncidentId(list, window.location.search)!));
-        setLive(true);
-        setPlaying(false);
-        setChats([]);
-        setModal(null);
+        const id = list.some(i => i.incidentId === activeIncident.current) ? activeIncident.current! : linkedIncidentId(list, window.location.search)!;
+        const next = await api.snapshot(id);
+        if (request !== loadRequest.current) return;
+        activateIncident(next);
       }
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) setPaired(false);
+      if (request !== loadRequest.current) return;
+      if (e instanceof ApiError && e.status === 401) { requirePairing(); return; }
       setError(e instanceof Error ? e.message : "Unable to refresh.");
     } finally {
-      setConnecting(false);
+      if (request === loadRequest.current) setConnecting(false);
     }
   }
   async function createFixture() {
+    const request = ++loadRequest.current;
     setConnecting(true); setError("");
     try {
       const next = await api.createFixture();
-      setIncidents(await api.incidents()); setSnapshot(next); setLive(true);
-      setPlaying(false); setChats([]); setModal(null);
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not create a fixture incident."); }
-    finally { setConnecting(false); }
+      if (request !== loadRequest.current) return;
+      const list = await api.incidents();
+      if (request !== loadRequest.current) return;
+      setIncidents(list); activateIncident(next);
+    } catch (e) { if (request === loadRequest.current) setError(e instanceof Error ? e.message : "Could not create a fixture incident."); }
+    finally { if (request === loadRequest.current) setConnecting(false); }
   }
   async function changeIncident(id: string) {
-    if (pending) return;
+    if (pending || sendLock.current || connecting) return;
+    const request = ++loadRequest.current;
+    setLoadingIncident(true);
     try {
-      setSnapshot(await api.snapshot(id));
+      const next = await api.snapshot(id);
+      if (request !== loadRequest.current) return;
+      activateIncident(next);
       const url = new URL(window.location.href);
       url.searchParams.set("incidentId", id);
       window.history.replaceState(null, "", url);
-      setChats([]);
-      setSelected("commander");
     } catch (e) {
+      if (request !== loadRequest.current) return;
+      if (e instanceof ApiError && e.status === 401) { requirePairing(); return; }
       setError(e instanceof Error ? e.message : "Unable to load incident.");
-    }
+    } finally { if (request === loadRequest.current) setLoadingIncident(false); }
   }
   function download() {
     if (live) {
@@ -495,13 +553,8 @@ export default function App() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  if (paired && backendMode === "live" && incidents.length === 0) {
-    return <WaitingOffice reduced={reduced} onIncident={(next, list) => {
-      setIncidents(list); setSnapshot(next); setLive(true); setPlaying(false);
-      setChats([]); setInput(""); setSelected("commander"); setModal(null);
-      const url = new URL(window.location.href); url.searchParams.set("incidentId", next.incidentId);
-      window.history.replaceState(null, "", url);
-    }} />;
+  if (paired && backendMode === "live" && incidents.length === 0 && modal !== "connect") {
+    return <WaitingOffice reduced={reduced} onIncident={receiveFirstIncident} onAuthRequired={requirePairing} onConnect={openConnection} />;
   }
   const agentChats = chats.filter((c) => c.agent === selected);
   return (
@@ -622,7 +675,7 @@ export default function App() {
               {live && incidents.length > 1 ? (
                 <select
                   aria-label="Select incident"
-                  disabled={!!pending || sending}
+                  disabled={!!pending || sending || connecting}
                   value={snapshot.incidentId}
                   onChange={(e) => void changeIncident(e.target.value)}
                 >
@@ -810,6 +863,9 @@ export default function App() {
                 </span>
                 <button
                   onClick={() => {
+                    loadRequest.current++;
+                    activeIncident.current = null;
+                    setLoadingIncident(false); setConnecting(false); setInput("");
                     setLive(false);
                     setPending(null);
                     setChats([]);
@@ -980,7 +1036,7 @@ export default function App() {
                       </div>
                       <p>
                         {selected === "commander"
-                          ? `${snapshot.agents.length - 1} specialists share the same incident. ${openTasks.length} tasks have owners and ${blockers.length} need review.`
+                          ? `${snapshot.agents.length - 1} specialists share the same incident. ${openTasks.filter(t => t.owner).length} open tasks have owners and ${blockers.length} need review.`
                           : agent.waitingOn || agent.summary}
                       </p>
                       <button onClick={() => setTab("tasks")}>
@@ -1126,7 +1182,7 @@ export default function App() {
                 {["What needs attention?", "What happens next?"].map((q) => (
                   <button
                     key={q}
-                    disabled={!!pending || sending}
+                    disabled={!!pending || sending || loadingIncident || connecting || (live && !paired)}
                     onClick={() => void send(q)}
                   >
                     {q}
@@ -1145,6 +1201,7 @@ export default function App() {
                   aria-label={`Message ${department.name}`}
                   placeholder={`Ask ${department.name} anything about this incident…`}
                   value={input}
+                  disabled={loadingIncident || connecting || (live && !paired)}
                   maxLength={4000}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -1166,7 +1223,7 @@ export default function App() {
                   <button
                     type="submit"
                     aria-label="Send message"
-                    disabled={!input.trim() || !!pending || sending}
+                    disabled={!input.trim() || !!pending || sending || loadingIncident || connecting || (live && !paired)}
                   >
                     {pending ? (
                       <LoaderCircle size={16} className="spin" />
@@ -1275,7 +1332,7 @@ export default function App() {
                 {error && <div role="alert" className="modal-error">{error}</div>}
                 <button
                   className="text-button"
-                  disabled={connecting}
+                  disabled={connecting || loadingIncident || !!pending || sending}
                   onClick={() => void refreshIncidents()}
                 >
                   {paired ? "Refresh incidents" : "Already paired? Refresh incidents"} <RotateCcw size={13} />

@@ -37,7 +37,10 @@ export const snapshotSchema = z.object({
   schemaVersion: z.literal(1), incidentId: z.string(), version: z.number().int(), cursor: z.number().int(),
   mode: z.enum(['live', 'fixture']), title: z.string(), location: z.string(), status: incidentStatusSchema,
   slackThreadUrl: z.string(), slackConnection: z.enum(['connected', 'reconnecting', 'disconnected']),
-  agents: z.array(agentViewSchema), tasks: z.array(taskViewSchema),
+  agents: z.array(agentViewSchema).length(agentIds.length).refine(
+    agents => new Set(agents.map(agent => agent.id)).size === agentIds.length,
+    'A snapshot must contain exactly one of each agent',
+  ), tasks: z.array(taskViewSchema),
   responseActions: z.array(responseActionSchema).optional(),
   activity: z.array(z.object({ id: z.string(), text: z.string(), timestamp: z.string(), sources: z.array(sourceRefSchema) })),
   reports: z.array(z.object({ id: z.string(), version: z.number(), title: z.string(), downloadUrl: z.string() })),

@@ -5,7 +5,7 @@ export default function ResponseBoard({ snapshot }: { snapshot: IncidentSnapshot
   if (!actions.length) return null;
   const icons = { management: BellRing, followup: CalendarClock, emergency_call: PhoneCall };
   return <section className="response-board" aria-label="Autonomous response actions">
-    <div className="response-board-heading"><Zap size={14} /><strong>Autopilot</strong><span>Acting automatically · monitoring updates</span></div>
+    <div className="response-board-heading"><Zap size={14} /><strong>Autopilot</strong><span>{snapshot.status === 'closed' ? 'Incident closed · action history' : snapshot.status === 'handed_over' ? 'Handoff accepted · action history' : 'Acting automatically · monitoring updates'}</span></div>
     <div className="response-action-grid">{actions.map(a => {
       const Icon = icons[a.kind];
       return <details className={`response-action ${a.status}`} key={a.id}>
